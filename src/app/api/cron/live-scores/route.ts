@@ -246,7 +246,7 @@ export async function GET(request: Request) {
 
     // Match predictions with fixtures and update
     let updatedCount = 0;
-    const matchDebug: any[] = [];
+    let matchedCount = 0;
     for (const pred of predictions) {
       if (pred.is_finished) continue;
 
@@ -259,23 +259,8 @@ export async function GET(request: Request) {
         )
       );
 
-      if (!matchedFixture) {
-        matchDebug.push({
-          pred_home: pred.home_team,
-          pred_away: pred.away_team,
-          matched: false
-        });
-        continue;
-      }
-
-      matchDebug.push({
-        pred_home: pred.home_team,
-        pred_away: pred.away_team,
-        fixture_home: matchedFixture.teams?.home?.name,
-        fixture_away: matchedFixture.teams?.away?.name,
-        matched: true,
-        status: matchedFixture.fixture?.status?.short
-      });
+      if (!matchedFixture) continue;
+      matchedCount++;
 
       const status = determineMatchStatus(matchedFixture);
       const homeScore = matchedFixture.goals?.home ?? null;
@@ -321,24 +306,15 @@ export async function GET(request: Request) {
         })
         .eq('id', pred.id);
 
-      if (!updateError) {
-        updatedCount++;
-      } else {
-        matchDebug.push({
-          update_error: updateError.message,
-          pred_id: pred.id,
-          pred_home: pred.home_team
-        });
-      }
+      if (!updateError) updatedCount++;
     }
 
     return NextResponse.json({
       success: true,
       date: today,
       total_predictions: predictions.length,
-      fixtures_found: fixtures.length,
+      matched: matchedCount,
       updated: updatedCount,
-      matches: matchDebug,
       updated_at: new Date().toISOString()
     });
 
