@@ -69,65 +69,6 @@ function tryLocalFile(dateParam: string): any[] | null {
   }
 }
 
-// Fetch from Supabase predictions table
-async function fetchFromSupabase(dateParam: string): Promise<any[] | null> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return null;
-
-  try {
-    const targetDate = getTargetDate(dateParam);
-
-    const { data, error } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('match_date', targetDate)
-      .eq('status', 'active')
-      .order('confidence', { ascending: false });
-
-    if (error) {
-      console.error('Supabase query error:', error);
-      return null;
-    }
-    if (!data || data.length === 0) return null;
-
-    // Transform Supabase predictions to UI format
-    return data.map((pred) => ({
-      'Ev Sahibi': pred.home_team || '',
-      'Deplasman': pred.away_team || '',
-      'Lig': pred.league || '',
-      'Tarih': formatDateTurkish(pred.match_date || targetDate),
-      'Saat': pred.match_time || '',
-      'best_prediction': pred.prediction || '',
-      'best_confidence': pred.confidence || 0,
-      'alternatif_tahminler': (pred.alternative_predictions || []).map((alt: any) => ({
-        tahmin: alt.bet || alt.tahmin || '',
-        güven: alt.confidence || alt.güven || 0,
-        not: alt.note || alt.not || ''
-      })),
-      'eşleşen_kurallar': (pred.matched_rules || []).map((r: any) => ({
-        kural_id: r.rule_id || r.kural_id || '',
-        kural_adı: r.rule_name || r.kural_adı || ''
-      })),
-      'toplam_tahmin_sayısı': (pred.alternative_predictions || []).length + 1,
-      'predictions': pred.alternative_predictions || [],
-      'matched_rules': pred.matched_rules || [],
-      'note': pred.note || '',
-      'live_status': pred.live_status || 'not_started',
-      'home_score': pred.home_score ?? null,
-      'away_score': pred.away_score ?? null,
-      'halftime_home': pred.halftime_home ?? null,
-      'halftime_away': pred.halftime_away ?? null,
-      'elapsed': pred.elapsed ?? null,
-      'is_live': pred.is_live || false,
-      'is_finished': pred.is_finished || false,
-      'prediction_result': pred.prediction_result ?? null
-    }));
-  } catch (e) {
-    console.error('Supabase fetch error:', e);
-    return null;
-  }
-}
-
 // Transform and validate opportunity
 function transformOpportunity(opp: any, index: number): any | null {
   const hasTurkishKeys = opp['Ev Sahibi'] && opp['Deplasman'];
@@ -149,14 +90,14 @@ function transformOpportunity(opp: any, index: number): any | null {
       'eşleşen_kurallar': opp['eşleşen_kurallar'] || [],
       'toplam_tahmin_sayısı': opp['toplam_tahmin_sayısı'] || 0,
       'live_status': opp['live_status'] || 'not_started',
-      'home_score': opp['home_score'],
-      'away_score': opp['away_score'],
-      'halftime_home': opp['halftime_home'],
-      'halftime_away': opp['halftime_away'],
-      'elapsed': opp['elapsed'],
+      'home_score': opp['home_score'] ?? null,
+      'away_score': opp['away_score'] ?? null,
+      'halftime_home': opp['halftime_home'] ?? null,
+      'halftime_away': opp['halftime_away'] ?? null,
+      'elapsed': opp['elapsed'] ?? null,
       'is_live': opp['is_live'] || false,
       'is_finished': opp['is_finished'] || false,
-      'prediction_result': opp['prediction_result']
+      'prediction_result': opp['prediction_result'] ?? null
     };
   } else {
     const raw = opp._raw || {};
@@ -188,6 +129,20 @@ function transformOpportunity(opp: any, index: number): any | null {
   return transformed;
 }
 
+// Sort opportunities: by match time (earliest first), then by confidence (highest first)
+function sortByMatchTime(opportunities: any[]): any[] {
+  return opportunities.sort((a, b) => {
+    const timeA = a['Saat'] || '99:99';
+    const timeB = b['Saat'] || '99:99';
+
+    if (timeA !== timeB) {
+      return timeA.localeCompare(timeB);
+    }
+    // Same time: sort by confidence descending
+    return (b['best_confidence'] || 0) - (a['best_confidence'] || 0);
+  });
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -197,34 +152,20 @@ export async function GET(request: Request) {
     let opportunities = tryLocalFile(date);
 
     // Strategy 2: Fall back to Supabase (works in Vercel/production)
-    let supabaseError: string | null = null;
     if (!opportunities) {
       try {
         const supabase = getSupabaseClient();
         if (supabase) {
           const targetDate = getTargetDate(date);
-          // First: simple count query to debug
-          const { count, error: countErr } = await supabase
-            .from('predictions')
-            .select('*', { count: 'exact', head: true })
-            .eq('match_date', targetDate);
 
-          if (countErr) {
-            supabaseError = `count error: ${countErr.message} (code: ${countErr.code})`;
-          } else {
-            supabaseError = `count for ${targetDate}: ${count}`;
-          }
-
-          // Now try full fetch without status filter
           const { data, error: fetchErr } = await supabase
             .from('predictions')
             .select('*')
             .eq('match_date', targetDate)
+            .order('match_time', { ascending: true })
             .order('confidence', { ascending: false });
 
-          if (fetchErr) {
-            supabaseError += ` | fetch error: ${fetchErr.message}`;
-          } else if (data && data.length > 0) {
+          if (!fetchErr && data && data.length > 0) {
             opportunities = data.map((pred: any) => ({
               'Ev Sahibi': pred.home_team || '',
               'Deplasman': pred.away_team || '',
@@ -246,41 +187,29 @@ export async function GET(request: Request) {
               'predictions': pred.alternative_predictions || [],
               'matched_rules': pred.matched_rules || [],
               'note': pred.note || '',
-              'live_status': 'not_started',
-              'home_score': null,
-              'away_score': null,
-              'halftime_home': null,
-              'halftime_away': null,
-              'elapsed': null,
-              'is_live': false,
-              'is_finished': false,
-              'prediction_result': null
+              'live_status': pred.live_status || 'not_started',
+              'home_score': pred.home_score ?? null,
+              'away_score': pred.away_score ?? null,
+              'halftime_home': pred.halftime_home ?? null,
+              'halftime_away': pred.halftime_away ?? null,
+              'elapsed': pred.elapsed ?? null,
+              'is_live': pred.is_live || false,
+              'is_finished': pred.is_finished || false,
+              'prediction_result': pred.prediction_result ?? null
             }));
-            supabaseError += ` | fetched ${data.length} rows`;
-          } else {
-            supabaseError += ` | no rows returned`;
           }
         }
       } catch (e: any) {
-        supabaseError = `exception: ${e.message}`;
+        console.error('Supabase fetch error:', e.message);
       }
     }
 
     // No data from either source
     if (!opportunities || opportunities.length === 0) {
-      const hasSupabase = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
       return NextResponse.json({
         success: false,
         opportunities: [],
-        message: 'Şu anda gösterilecek fırsat maç bulunamadı.',
-        debug: {
-          version: 'v3-inline-supabase',
-          date,
-          targetDate: getTargetDate(date),
-          hasLocalFile: tryLocalFile(date) !== null,
-          hasSupabaseEnv: hasSupabase,
-          supabaseResult: supabaseError,
-        }
+        message: 'Su anda gosterilecek firsat mac bulunamadi.'
       }, { status: 200 });
     }
 
@@ -289,10 +218,13 @@ export async function GET(request: Request) {
       .map((opp: any, index: number) => transformOpportunity(opp, index))
       .filter((opp: any): opp is NonNullable<typeof opp> => opp !== null);
 
+    // Sort by match time (earliest first)
+    const sorted = sortByMatchTime(uiOpportunities);
+
     return NextResponse.json({
       success: true,
-      opportunities: uiOpportunities,
-      count: uiOpportunities.length,
+      opportunities: sorted,
+      count: sorted.length,
       message: null
     });
 
@@ -301,7 +233,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: false,
       opportunities: [],
-      message: 'Veri yüklenirken hata oluştu.'
+      message: 'Veri yuklenirken hata olustu.'
     }, { status: 500 });
   }
 }
