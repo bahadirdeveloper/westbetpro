@@ -299,7 +299,15 @@ export async function GET(request: Request) {
         })
         .eq('id', pred.id);
 
-      if (!updateError) updatedCount++;
+      if (!updateError) {
+        updatedCount++;
+      } else {
+        matchDebug.push({
+          update_error: updateError.message,
+          pred_id: pred.id,
+          pred_home: pred.home_team
+        });
+      }
     }
 
     return NextResponse.json({
