@@ -199,10 +199,18 @@ export async function GET(request: Request) {
 
     // No data from either source
     if (!opportunities || opportunities.length === 0) {
+      const hasSupabase = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
       return NextResponse.json({
         success: false,
         opportunities: [],
-        message: 'Şu anda gösterilecek fırsat maç bulunamadı.'
+        message: 'Şu anda gösterilecek fırsat maç bulunamadı.',
+        debug: {
+          version: 'v2-supabase-fallback',
+          date,
+          targetDate: getTargetDate(date),
+          hasLocalFile: tryLocalFile(date) !== null,
+          hasSupabaseEnv: hasSupabase,
+        }
       }, { status: 200 });
     }
 
