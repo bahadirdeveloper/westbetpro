@@ -191,6 +191,7 @@ export async function GET(request: Request) {
 
     // Match predictions with fixtures and update
     let updatedCount = 0;
+    const matchDebug: any[] = [];
     for (const pred of predictions) {
       if (pred.is_finished) continue;
 
@@ -203,7 +204,23 @@ export async function GET(request: Request) {
         )
       );
 
-      if (!matchedFixture) continue;
+      if (!matchedFixture) {
+        matchDebug.push({
+          pred_home: pred.home_team,
+          pred_away: pred.away_team,
+          matched: false
+        });
+        continue;
+      }
+
+      matchDebug.push({
+        pred_home: pred.home_team,
+        pred_away: pred.away_team,
+        fixture_home: matchedFixture.teams?.home?.name,
+        fixture_away: matchedFixture.teams?.away?.name,
+        matched: true,
+        status: matchedFixture.fixture?.status?.short
+      });
 
       const status = determineMatchStatus(matchedFixture);
       const homeScore = matchedFixture.goals?.home ?? null;
@@ -242,6 +259,7 @@ export async function GET(request: Request) {
       total_predictions: predictions.length,
       fixtures_found: fixtures.length,
       updated: updatedCount,
+      matches: matchDebug,
       updated_at: new Date().toISOString()
     });
 
