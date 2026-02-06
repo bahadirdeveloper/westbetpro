@@ -19,7 +19,8 @@ sys.path.append(backend_path)
 # Import routes (from api.routes)
 from api.routes import (
     matches, predictions, logs, analytics, results,
-    admin_analytics_simple, upload, engine, admin_analytics
+    admin_analytics_simple, upload, engine, admin_analytics,
+    api_usage
 )
 
 # Create FastAPI app
@@ -53,6 +54,7 @@ app.include_router(admin_analytics_simple.router)
 app.include_router(upload.router)
 app.include_router(engine.router)
 app.include_router(admin_analytics.router)
+app.include_router(api_usage.router)
 
 
 @app.get("/")

@@ -21,8 +21,19 @@ interface OverviewData {
   } | null;
 }
 
+interface ApiUsageData {
+  success: boolean;
+  daily_limit: number;
+  remaining: number;
+  used_today: number;
+  plan: string;
+  active: boolean;
+  checked_at: string;
+}
+
 export default function AdminDashboardScreen() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [apiUsage, setApiUsage] = useState<ApiUsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -46,8 +57,24 @@ export default function AdminDashboardScreen() {
     }
   };
 
+  const fetchApiUsage = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('http://localhost:8000/api/admin/api-usage/status', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setApiUsage(data);
+      }
+    } catch {
+      // API usage is optional, don't block dashboard
+    }
+  };
+
   useEffect(() => {
     fetchOverview();
+    fetchApiUsage();
   }, []);
 
   const handleRunEngine = async () => {
@@ -232,6 +259,90 @@ export default function AdminDashboardScreen() {
             <p className="text-sm text-slate-400">Fırsat</p>
           </div>
         </div>
+      </div>
+
+      {/* API Usage Card */}
+      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg text-white flex items-center gap-2">
+            <span className="material-icons-round text-blue-400">api</span>
+            API-Football Kullanımı
+          </h3>
+          <button
+            onClick={fetchApiUsage}
+            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+          >
+            <span className="material-icons-round text-sm">refresh</span>
+            Yenile
+          </button>
+        </div>
+
+        {apiUsage ? (
+          <div className="space-y-4">
+            {/* Usage Bar */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-slate-400">Günlük Kullanım</span>
+                <span className="text-sm font-bold text-white">
+                  {apiUsage.used_today} / {apiUsage.daily_limit}
+                </span>
+              </div>
+              <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    apiUsage.daily_limit > 0 && (apiUsage.used_today / apiUsage.daily_limit) > 0.9
+                      ? 'bg-red-500'
+                      : apiUsage.daily_limit > 0 && (apiUsage.used_today / apiUsage.daily_limit) > 0.7
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${apiUsage.daily_limit > 0 ? Math.min(100, (apiUsage.used_today / apiUsage.daily_limit) * 100) : 0}%`
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white/5 p-3 rounded-lg text-center">
+                <p className="text-2xl font-bold text-green-400">{apiUsage.remaining}</p>
+                <p className="text-xs text-slate-400 mt-1">Kalan</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded-lg text-center">
+                <p className="text-2xl font-bold text-blue-400">{apiUsage.used_today}</p>
+                <p className="text-xs text-slate-400 mt-1">Kullanılan</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded-lg text-center">
+                <p className="text-2xl font-bold text-aged-gold">{apiUsage.daily_limit}</p>
+                <p className="text-xs text-slate-400 mt-1">Günlük Limit</p>
+              </div>
+            </div>
+
+            {/* Plan Info */}
+            <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+              <span className="text-sm text-slate-400">Plan</span>
+              <span className="text-sm font-medium text-white flex items-center gap-2">
+                {apiUsage.plan}
+                {apiUsage.active && (
+                  <span className="w-2 h-2 bg-green-400 rounded-full" />
+                )}
+              </span>
+            </div>
+
+            {/* Last Check */}
+            {apiUsage.checked_at && (
+              <p className="text-xs text-slate-500 text-right">
+                Son kontrol: {new Date(apiUsage.checked_at).toLocaleTimeString('tr-TR')}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <span className="material-icons-round text-slate-600 text-3xl mb-2 block">cloud_off</span>
+            <p className="text-slate-500 text-sm">API kullanım bilgisi yüklenemedi</p>
+          </div>
+        )}
       </div>
     </div>
   );
