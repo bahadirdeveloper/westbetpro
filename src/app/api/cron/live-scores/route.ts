@@ -265,7 +265,7 @@ export async function GET(request: Request) {
     // Match and update
     let updatedCount = 0;
     let matchedCount = 0;
-    const matchLog: any[] = [];
+    const unmatched: string[] = [];
 
     for (const pred of predictions) {
       if (pred.is_finished) continue;
@@ -275,10 +275,7 @@ export async function GET(request: Request) {
       );
 
       if (!matchedFixture) {
-        matchLog.push({
-          pred: `${pred.home_team} vs ${pred.away_team}`,
-          status: 'no_match'
-        });
+        unmatched.push(`${pred.home_team} vs ${pred.away_team}`);
         continue;
       }
       matchedCount++;
@@ -308,7 +305,8 @@ export async function GET(request: Request) {
         }
       }
 
-      const updateData = {
+      // Update via direct REST API (bypasses RLS issues with JS client)
+      const result = await supabaseUpdate('predictions', pred.id, {
         is_live: status.is_live,
         is_finished: status.is_finished,
         live_status: status.live_status,
@@ -319,21 +317,6 @@ export async function GET(request: Request) {
         halftime_away: halftimeAway,
         prediction_result: predictionResult,
         updated_at: new Date().toISOString()
-      };
-
-      // Update via direct REST API (bypasses RLS issues with JS client)
-      const result = await supabaseUpdate('predictions', pred.id, updateData);
-
-      matchLog.push({
-        pred: `${pred.home_team} vs ${pred.away_team}`,
-        fixture: `${matchedFixture.teams?.home?.name} vs ${matchedFixture.teams?.away?.name}`,
-        api_status: matchedFixture.fixture?.status?.short,
-        score: `${homeScore}-${awayScore}`,
-        ht: `${halftimeHome}-${halftimeAway}`,
-        write: updateData.live_status,
-        write_finished: updateData.is_finished,
-        db_ok: result.ok,
-        db_status: result.status
       });
 
       if (result.ok) updatedCount++;
@@ -350,9 +333,8 @@ export async function GET(request: Request) {
       matched: matchedCount,
       updated: updatedCount,
       fixtures_found: fixtures.length,
-      unfinished_remaining: unfinished - updatedCount,
-      updated_at: new Date().toISOString(),
-      log: matchLog
+      unmatched: unmatched.length > 0 ? unmatched : undefined,
+      updated_at: new Date().toISOString()
     });
 
   } catch (error: any) {
