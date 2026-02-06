@@ -97,12 +97,13 @@ export default function DashboardScreen() {
 
   // Fetch real data from backend
   useEffect(() => {
+    let isFirst = true;
+
     async function fetchOpportunities() {
       try {
-        setLoading(true);
-        setError(null);
+        if (isFirst) { setLoading(true); setError(null); }
 
-        const response = await fetch(`/api/opportunities?date=${selectedDate}`, {
+        const response = await fetch(`/api/opportunities?date=${selectedDate}&t=${Date.now()}`, {
           cache: 'no-store'
         });
 
@@ -110,34 +111,44 @@ export default function DashboardScreen() {
 
         if (data.success && data.opportunities.length > 0) {
           setOpportunities(data.opportunities);
+          setError(null);
         } else {
           setOpportunities([]);
           setError(data.message || 'Şu anda gösterilecek fırsat maç bulunamadı.');
         }
       } catch (err) {
         console.error('Error fetching opportunities:', err);
-        setError('Veri yüklenirken hata oluştu.');
-        setOpportunities([]);
+        if (isFirst) {
+          setError('Veri yüklenirken hata oluştu.');
+          setOpportunities([]);
+        }
       } finally {
-        setLoading(false);
+        if (isFirst) { setLoading(false); isFirst = false; }
       }
     }
 
-    fetchOpportunities();
+    // Trigger live score cron, wait for it, then fetch fresh data
+    async function triggerAndRefresh() {
+      try {
+        await fetch('/api/cron/live-scores').catch(() => {});
+        // Small delay so Supabase data propagates
+        await new Promise(r => setTimeout(r, 500));
+      } catch {}
+      await fetchOpportunities();
+    }
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchOpportunities, 30000);
+    // Initial: trigger cron first, then load data
+    triggerAndRefresh();
 
-    // Trigger live score update every 2 minutes (for Vercel production)
-    const triggerLiveScores = () => {
-      fetch('/api/cron/live-scores').catch(() => {});
-    };
-    triggerLiveScores();
-    const liveInterval = setInterval(triggerLiveScores, 120000);
+    // UI refresh every 20 seconds (reads from Supabase - fast)
+    const uiInterval = setInterval(fetchOpportunities, 20000);
+
+    // Live score cron every 90 seconds (calls API-Football + updates Supabase)
+    const cronInterval = setInterval(triggerAndRefresh, 90000);
 
     return () => {
-      clearInterval(interval);
-      clearInterval(liveInterval);
+      clearInterval(uiInterval);
+      clearInterval(cronInterval);
     };
   }, [selectedDate]);
 
