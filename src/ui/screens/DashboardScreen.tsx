@@ -127,7 +127,18 @@ export default function DashboardScreen() {
 
     // Refresh every 30 seconds
     const interval = setInterval(fetchOpportunities, 30000);
-    return () => clearInterval(interval);
+
+    // Trigger live score update every 2 minutes (for Vercel production)
+    const triggerLiveScores = () => {
+      fetch('/api/cron/live-scores').catch(() => {});
+    };
+    triggerLiveScores();
+    const liveInterval = setInterval(triggerLiveScores, 120000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(liveInterval);
+    };
   }, [selectedDate]);
 
   // Calculate risk level from confidence
