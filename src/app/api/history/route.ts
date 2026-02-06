@@ -4,16 +4,25 @@
  * Endpoints:
  * - GET /api/history          → Returns all available dates with prediction counts & stats
  * - GET /api/history?date=YYYY-MM-DD → Returns predictions for a specific date
+ *
+ * Uses direct REST API for reads to avoid Supabase JS client caching issues.
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+async function supabaseSelect(params: string): Promise<any[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/predictions?${params}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  return res.json();
 }
 
 function formatDateTurkish(dateStr: string): string {
@@ -30,26 +39,17 @@ function getTodayIstanbul(): string {
 
 export async function GET(request: Request) {
   try {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
       return NextResponse.json({ success: false, message: 'Veritabanı bağlantısı yok' }, { status: 500 });
     }
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 
-    // If a specific date is requested, return predictions for that date
     if (date) {
-      const { data, error } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('match_date', date)
-        .order('match_time', { ascending: true })
-        .order('confidence', { ascending: false });
-
-      if (error) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-      }
+      const data = await supabaseSelect(
+        `match_date=eq.${date}&order=match_time.asc,confidence.desc&select=*`
+      );
 
       const predictions = (data || []).map((pred: any) => ({
         id: pred.id,
@@ -82,7 +82,6 @@ export async function GET(request: Request) {
         prediction_result: pred.prediction_result ?? null,
       }));
 
-      // Calculate stats for this date
       const total = predictions.length;
       const finished = predictions.filter((p: any) => p.is_finished).length;
       const won = predictions.filter((p: any) => p.prediction_result === 'won').length;
@@ -99,17 +98,11 @@ export async function GET(request: Request) {
       });
     }
 
-    // No date specified: return summary of all available dates
-    const { data, error } = await supabase
-      .from('predictions')
-      .select('match_date, is_finished, is_live, prediction_result')
-      .order('match_date', { ascending: false });
+    // No date: return summary of all dates
+    const data = await supabaseSelect(
+      'select=match_date,is_finished,is_live,prediction_result&order=match_date.desc'
+    );
 
-    if (error) {
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-    }
-
-    // Group by date
     const dateMap: Record<string, { total: number; finished: number; won: number; lost: number; live: number }> = {};
     for (const pred of (data || [])) {
       const d = pred.match_date;
@@ -147,3 +140,4 @@ export async function GET(request: Request) {
 }
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;

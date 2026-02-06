@@ -3,7 +3,9 @@
  *
  * Data Sources (priority order):
  * 1. Local JSON files (data/opportunities_*.json) - for local dev with scheduler
- * 2. Supabase predictions table - for Vercel/production deployment
+ * 2. Supabase predictions table (direct REST API) - for Vercel/production
+ *
+ * Uses direct REST API for reads to avoid Supabase JS client caching issues.
  *
  * Query params:
  * - date: 'today' | 'tomorrow' | 'day_after_tomorrow' (default: 'today')
@@ -12,14 +14,20 @@
 import { NextResponse } from 'next/server';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { createClient } from '@supabase/supabase-js';
 
-// Supabase client for production
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+async function supabaseSelect(params: string): Promise<any[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/predictions?${params}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) return [];
+  return res.json();
 }
 
 // Calculate target date in Istanbul timezone
@@ -151,56 +159,49 @@ export async function GET(request: Request) {
     // Strategy 1: Try local JSON file (works in local dev with scheduler)
     let opportunities = tryLocalFile(date);
 
-    // Strategy 2: Fall back to Supabase (works in Vercel/production)
-    if (!opportunities) {
+    // Strategy 2: Fall back to Supabase REST API (works in Vercel/production)
+    if (!opportunities && SUPABASE_URL && SUPABASE_KEY) {
       try {
-        const supabase = getSupabaseClient();
-        if (supabase) {
-          const targetDate = getTargetDate(date);
+        const targetDate = getTargetDate(date);
+        const data = await supabaseSelect(
+          `match_date=eq.${targetDate}&order=match_time.asc,confidence.desc&select=*`
+        );
 
-          const { data, error: fetchErr } = await supabase
-            .from('predictions')
-            .select('*')
-            .eq('match_date', targetDate)
-            .order('match_time', { ascending: true })
-            .order('confidence', { ascending: false });
-
-          if (!fetchErr && data && data.length > 0) {
-            opportunities = data.map((pred: any) => ({
-              'Ev Sahibi': pred.home_team || '',
-              'Deplasman': pred.away_team || '',
-              'Lig': pred.league || '',
-              'Tarih': formatDateTurkish(pred.match_date || targetDate),
-              'Saat': pred.match_time || '',
-              'best_prediction': pred.prediction || '',
-              'best_confidence': pred.confidence || 0,
-              'alternatif_tahminler': (pred.alternative_predictions || []).map((alt: any) => ({
-                tahmin: alt.bet || alt.tahmin || '',
-                güven: alt.confidence || alt.güven || 0,
-                not: alt.note || alt.not || ''
-              })),
-              'eşleşen_kurallar': (pred.matched_rules || []).map((r: any) => ({
-                kural_id: r.rule_id || r.kural_id || '',
-                kural_adı: r.rule_name || r.kural_adı || ''
-              })),
-              'toplam_tahmin_sayısı': (pred.alternative_predictions || []).length + 1,
-              'predictions': pred.alternative_predictions || [],
-              'matched_rules': pred.matched_rules || [],
-              'note': pred.note || '',
-              'live_status': pred.live_status || 'not_started',
-              'home_score': pred.home_score ?? null,
-              'away_score': pred.away_score ?? null,
-              'halftime_home': pred.halftime_home ?? null,
-              'halftime_away': pred.halftime_away ?? null,
-              'elapsed': pred.elapsed ?? null,
-              'is_live': pred.is_live || false,
-              'is_finished': pred.is_finished || false,
-              'prediction_result': pred.prediction_result ?? null
-            }));
-          }
+        if (data && data.length > 0) {
+          opportunities = data.map((pred: any) => ({
+            'Ev Sahibi': pred.home_team || '',
+            'Deplasman': pred.away_team || '',
+            'Lig': pred.league || '',
+            'Tarih': formatDateTurkish(pred.match_date || targetDate),
+            'Saat': pred.match_time || '',
+            'best_prediction': pred.prediction || '',
+            'best_confidence': pred.confidence || 0,
+            'alternatif_tahminler': (pred.alternative_predictions || []).map((alt: any) => ({
+              tahmin: alt.bet || alt.tahmin || '',
+              güven: alt.confidence || alt.güven || 0,
+              not: alt.note || alt.not || ''
+            })),
+            'eşleşen_kurallar': (pred.matched_rules || []).map((r: any) => ({
+              kural_id: r.rule_id || r.kural_id || '',
+              kural_adı: r.rule_name || r.kural_adı || ''
+            })),
+            'toplam_tahmin_sayısı': (pred.alternative_predictions || []).length + 1,
+            'predictions': pred.alternative_predictions || [],
+            'matched_rules': pred.matched_rules || [],
+            'note': pred.note || '',
+            'live_status': pred.live_status || 'not_started',
+            'home_score': pred.home_score ?? null,
+            'away_score': pred.away_score ?? null,
+            'halftime_home': pred.halftime_home ?? null,
+            'halftime_away': pred.halftime_away ?? null,
+            'elapsed': pred.elapsed ?? null,
+            'is_live': pred.is_live || false,
+            'is_finished': pred.is_finished || false,
+            'prediction_result': pred.prediction_result ?? null
+          }));
         }
       } catch (e: any) {
-        console.error('Supabase fetch error:', e.message);
+        console.error('Supabase REST fetch error:', e.message);
       }
     }
 
