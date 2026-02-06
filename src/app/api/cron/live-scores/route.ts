@@ -196,7 +196,8 @@ async function fetchFixtures(date: string): Promise<any[]> {
       headers: {
         'x-rapidapi-key': API_FOOTBALL_KEY,
         'x-rapidapi-host': 'v3.football.api-sports.io'
-      }
+      },
+      cache: 'no-store',
     });
     if (!res.ok) return [];
     const data = await res.json();
