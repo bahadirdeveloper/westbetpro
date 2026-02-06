@@ -59,6 +59,14 @@ function getTodayDate(): string {
   return istanbulTime.toISOString().split('T')[0];
 }
 
+function getYesterdayDate(): string {
+  const now = new Date();
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istanbulTime = new Date(utcTime + 3 * 3600000);
+  istanbulTime.setDate(istanbulTime.getDate() - 1);
+  return istanbulTime.toISOString().split('T')[0];
+}
+
 const TEAM_ALIASES: Record<string, string> = {
   'mvv': 'maastricht',
   'maastricht': 'maastricht',
@@ -213,12 +221,20 @@ export async function GET(request: Request) {
 
   try {
     const today = getTodayDate();
+    const yesterday = getYesterdayDate();
 
-    // Get today's predictions via REST API
-    const predictions = await supabaseSelect(
+    // Get predictions that need updating: today's + yesterday's unfinished
+    const todayPredictions = await supabaseSelect(
       'predictions',
       `match_date=eq.${today}&order=match_time.asc&select=*`
     );
+
+    const yesterdayUnfinished = await supabaseSelect(
+      'predictions',
+      `match_date=eq.${yesterday}&is_finished=eq.false&order=match_time.asc&select=*`
+    );
+
+    const predictions = [...(yesterdayUnfinished || []), ...(todayPredictions || [])];
 
     if (!predictions || predictions.length === 0) {
       return NextResponse.json({ success: true, message: 'No predictions to update', date: today });
@@ -229,8 +245,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, message: 'All matches already finished', date: today, total: predictions.length });
     }
 
-    // Fetch fixtures from API-Football
-    const fixtures = await fetchFixtures(today);
+    // Fetch fixtures from API-Football for both dates
+    const datesToFetch = new Set([today]);
+    if (yesterdayUnfinished && yesterdayUnfinished.length > 0) {
+      datesToFetch.add(yesterday);
+    }
+
+    let fixtures: any[] = [];
+    for (const date of datesToFetch) {
+      const dateFixtures = await fetchFixtures(date);
+      fixtures = fixtures.concat(dateFixtures);
+    }
+
     if (fixtures.length === 0) {
       return NextResponse.json({ success: true, message: 'No fixtures data from API', date: today });
     }
@@ -292,18 +318,17 @@ export async function GET(request: Request) {
     }
 
     // Count match statuses for debugging
-    const liveCount = predictions.filter((p: any) => p.is_live).length;
-    const finishedCount = predictions.filter((p: any) => p.is_finished).length;
+    const unfinished = predictions.filter((p: any) => !p.is_finished).length;
 
     return NextResponse.json({
       success: true,
-      date: today,
+      dates: Array.from(datesToFetch),
       total_predictions: predictions.length,
+      yesterday_unfinished: yesterdayUnfinished?.length || 0,
       matched: matchedCount,
       updated: updatedCount,
       fixtures_found: fixtures.length,
-      live: liveCount,
-      finished: finishedCount,
+      unfinished_remaining: unfinished - updatedCount,
       updated_at: new Date().toISOString()
     });
 
