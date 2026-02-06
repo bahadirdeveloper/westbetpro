@@ -331,3 +331,29 @@ SELECT * FROM rule_performance ORDER BY success_rate DESC LIMIT 10;
 --
 -- Artık her prediction trace edilebilir!
 -- ================================================================
+
+-- ================================================================
+-- STEP 11: Add Live Score Columns to Predictions Table
+-- ================================================================
+-- These columns allow the Vercel cron endpoint to update
+-- live scores directly on predictions (denormalized for fast reads)
+
+ALTER TABLE predictions
+ADD COLUMN IF NOT EXISTS home_score INTEGER,
+ADD COLUMN IF NOT EXISTS away_score INTEGER,
+ADD COLUMN IF NOT EXISTS halftime_home INTEGER,
+ADD COLUMN IF NOT EXISTS halftime_away INTEGER,
+ADD COLUMN IF NOT EXISTS is_live BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS is_finished BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS live_status TEXT DEFAULT 'not_started',
+ADD COLUMN IF NOT EXISTS elapsed INTEGER,
+ADD COLUMN IF NOT EXISTS prediction_result TEXT;
+
+-- Indexes for live score queries
+CREATE INDEX IF NOT EXISTS idx_predictions_live ON predictions(is_live) WHERE is_live = true;
+CREATE INDEX IF NOT EXISTS idx_predictions_date ON predictions(match_date);
+CREATE INDEX IF NOT EXISTS idx_predictions_finished ON predictions(is_finished) WHERE is_finished = false;
+
+-- Grant update permissions for anon role (needed for Vercel serverless)
+GRANT UPDATE ON predictions TO anon;
+GRANT UPDATE ON predictions TO authenticated;
