@@ -1,11 +1,5 @@
 {
   "buildCommand": "next build",
   "outputDirectory": ".next",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/live-scores",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "framework": "nextjs"
 }
