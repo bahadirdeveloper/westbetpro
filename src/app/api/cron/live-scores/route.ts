@@ -28,18 +28,27 @@ function getTodayDate(): string {
 }
 
 function normalizeTeamName(name: string): string {
-  return name
+  // First handle Turkish special chars before lowercasing (İ -> i must happen before toLowerCase)
+  let result = name
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'i')
+    .replace(/ı/g, 'i')
     .toLowerCase()
-    .replace(/[İıĞğÜüŞşÖöÇç]/g, (c) => {
-      const map: Record<string, string> = {
-        'İ': 'i', 'ı': 'i', 'Ğ': 'g', 'ğ': 'g',
-        'Ü': 'u', 'ü': 'u', 'Ş': 's', 'ş': 's',
-        'Ö': 'o', 'ö': 'o', 'Ç': 'c', 'ç': 'c'
-      };
-      return map[c] || c;
-    })
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
     .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
+
+  // Remove common prefixes/suffixes for better matching
+  result = result
+    .replace(/^(fc|afc|sc|kvc|rfc|de|fk|nk|sk|mvv|vfb|tsv|bsc|bv|sv|vfl|1fc)\s+/, '')
+    .replace(/\s+(fc|sc|sport|city|united|utd)$/, '');
+
+  return result;
 }
 
 function teamsMatch(predHome: string, predAway: string, fixtureHome: string, fixtureAway: string): boolean {
@@ -48,7 +57,35 @@ function teamsMatch(predHome: string, predAway: string, fixtureHome: string, fix
   const fh = normalizeTeamName(fixtureHome);
   const fa = normalizeTeamName(fixtureAway);
 
-  return (ph.includes(fh) || fh.includes(ph)) && (pa.includes(fa) || fa.includes(pa));
+  // Direct substring match
+  const homeMatch = ph.includes(fh) || fh.includes(ph);
+  const awayMatch = pa.includes(fa) || fa.includes(pa);
+
+  if (homeMatch && awayMatch) return true;
+
+  // Try matching with first word only (for cases like "Al Nassr" vs "Alnassr")
+  const phFirst = ph.split(' ')[0];
+  const paFirst = pa.split(' ')[0];
+  const fhFirst = fh.split(' ')[0];
+  const faFirst = fa.split(' ')[0];
+
+  // If first words match and are long enough (>3 chars), consider it a match
+  const homeFirstMatch = (phFirst.length > 3 && fhFirst.length > 3) &&
+    (phFirst.includes(fhFirst) || fhFirst.includes(phFirst));
+  const awayFirstMatch = (paFirst.length > 3 && faFirst.length > 3) &&
+    (paFirst.includes(faFirst) || faFirst.includes(paFirst));
+
+  // Also try without spaces (alnassr vs al nassr)
+  const phNoSpace = ph.replace(/\s/g, '');
+  const paNoSpace = pa.replace(/\s/g, '');
+  const fhNoSpace = fh.replace(/\s/g, '');
+  const faNoSpace = fa.replace(/\s/g, '');
+
+  const homeNoSpaceMatch = phNoSpace.includes(fhNoSpace) || fhNoSpace.includes(phNoSpace);
+  const awayNoSpaceMatch = paNoSpace.includes(faNoSpace) || faNoSpace.includes(paNoSpace);
+
+  return (homeMatch || homeFirstMatch || homeNoSpaceMatch) &&
+         (awayMatch || awayFirstMatch || awayNoSpaceMatch);
 }
 
 function determineMatchStatus(fixture: any): {
@@ -111,12 +148,8 @@ function checkPredictionResult(prediction: string, homeScore: number, awayScore:
     return totalGoals < line ? 'won' : 'lost';
   }
 
-  // IY Over/Under (first half)
-  const iyOverMatch = pred.match(/^[Ii][Yy]\s+(\d+\.?\d*)\s*[UÜ]ST$/i);
-  if (iyOverMatch) return null; // Need halftime data
-
-  const iyUnderMatch = pred.match(/^[Ii][Yy]\s+(\d+\.?\d*)\s*ALT$/i);
-  if (iyUnderMatch) return null;
+  // IY Over/Under (first half) - handled separately with halftime data
+  // These are resolved in the main loop where halftime scores are available
 
   return null;
 }
@@ -231,6 +264,22 @@ export async function GET(request: Request) {
       let predictionResult = pred.prediction_result;
       if (status.is_finished && homeScore !== null && awayScore !== null && !predictionResult) {
         predictionResult = checkPredictionResult(pred.prediction || '', homeScore, awayScore);
+
+        // Handle IY (first half) predictions with halftime data
+        if (!predictionResult && halftimeHome !== null && halftimeAway !== null) {
+          const p = (pred.prediction || '').toUpperCase().trim();
+          const htTotal = halftimeHome + halftimeAway;
+          const iyOver = p.match(/^[İI]Y\s+(\d+\.?\d*)\s*[UÜ]ST$/);
+          if (iyOver) {
+            const line = parseFloat(iyOver[1]);
+            predictionResult = htTotal > line ? 'won' : 'lost';
+          }
+          const iyUnder = p.match(/^[İI]Y\s+(\d+\.?\d*)\s*ALT$/);
+          if (iyUnder) {
+            const line = parseFloat(iyUnder[1]);
+            predictionResult = htTotal < line ? 'won' : 'lost';
+          }
+        }
       }
 
       // Update Supabase
