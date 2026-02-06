@@ -264,6 +264,7 @@ export async function GET(request: Request) {
     // Match and update
     let updatedCount = 0;
     let matchedCount = 0;
+    const matchLog: any[] = [];
 
     for (const pred of predictions) {
       if (pred.is_finished) continue;
@@ -272,7 +273,13 @@ export async function GET(request: Request) {
         teamsMatch(pred.home_team, pred.away_team, f.teams?.home?.name || '', f.teams?.away?.name || '')
       );
 
-      if (!matchedFixture) continue;
+      if (!matchedFixture) {
+        matchLog.push({
+          pred: `${pred.home_team} vs ${pred.away_team}`,
+          status: 'no_match'
+        });
+        continue;
+      }
       matchedCount++;
 
       const status = determineMatchStatus(matchedFixture);
@@ -300,8 +307,7 @@ export async function GET(request: Request) {
         }
       }
 
-      // Update via direct REST API (bypasses RLS issues with JS client)
-      const result = await supabaseUpdate('predictions', pred.id, {
+      const updateData = {
         is_live: status.is_live,
         is_finished: status.is_finished,
         live_status: status.live_status,
@@ -312,6 +318,21 @@ export async function GET(request: Request) {
         halftime_away: halftimeAway,
         prediction_result: predictionResult,
         updated_at: new Date().toISOString()
+      };
+
+      // Update via direct REST API (bypasses RLS issues with JS client)
+      const result = await supabaseUpdate('predictions', pred.id, updateData);
+
+      matchLog.push({
+        pred: `${pred.home_team} vs ${pred.away_team}`,
+        fixture: `${matchedFixture.teams?.home?.name} vs ${matchedFixture.teams?.away?.name}`,
+        api_status: matchedFixture.fixture?.status?.short,
+        score: `${homeScore}-${awayScore}`,
+        ht: `${halftimeHome}-${halftimeAway}`,
+        write: updateData.live_status,
+        write_finished: updateData.is_finished,
+        db_ok: result.ok,
+        db_status: result.status
       });
 
       if (result.ok) updatedCount++;
@@ -329,7 +350,8 @@ export async function GET(request: Request) {
       updated: updatedCount,
       fixtures_found: fixtures.length,
       unfinished_remaining: unfinished - updatedCount,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      log: matchLog
     });
 
   } catch (error: any) {
