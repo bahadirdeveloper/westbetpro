@@ -16,16 +16,16 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      // Supabase Auth login
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseKey) {
-        setError('Sistem yapılandırması eksik. Lütfen yöneticinize başvurun.');
+        setError('Sistem yapılandırması eksik. Supabase URL veya Key bulunamadı.');
         setLoading(false);
         return;
       }
 
+      // Authenticate via Supabase Auth REST API
       const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
@@ -37,15 +37,29 @@ export default function AdminLogin() {
 
       const data = await response.json();
 
+      if (!response.ok) {
+        // Supabase Auth error
+        const msg = data?.error_description || data?.msg || data?.error || 'Giriş başarısız';
+        setError(msg);
+        setLoading(false);
+        return;
+      }
+
       if (data.access_token) {
+        // Store token and user info
         localStorage.setItem('admin_token', data.access_token);
+        localStorage.setItem('admin_user', JSON.stringify({
+          email: data.user?.email || email,
+          id: data.user?.id || '',
+          role: data.user?.role || 'authenticated'
+        }));
         router.push('/admin/dashboard');
       } else {
-        setError('Geçersiz email veya şifre');
+        setError('Token alınamadı. Lütfen tekrar deneyin.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('Giriş yapılamadı. Lütfen tekrar deneyin.');
+      setError('Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.');
     } finally {
       setLoading(false);
     }

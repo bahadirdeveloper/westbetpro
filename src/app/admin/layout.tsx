@@ -5,8 +5,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import AdminSidebar from '@/ui/components/admin/AdminSidebar';
 import Header from '@/ui/components/Header';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -29,19 +27,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
 
       try {
-        const response = await fetch(`${API_BASE}/api/health`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        // Verify token directly with Supabase Auth (no FastAPI dependency)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+          localStorage.removeItem('admin_token');
+          router.push('/admin/login');
+          return;
+        }
+
+        const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': supabaseKey
+          }
         });
 
         if (response.ok) {
-          setIsAuthenticated(true);
+          const user = await response.json();
+          // Valid token, user exists
+          if (user?.id) {
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('admin_token');
+            router.push('/admin/login');
+          }
         } else {
+          // Token expired or invalid
           localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
           router.push('/admin/login');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        router.push('/admin/login');
+        // On network error, still allow if token exists (offline mode)
+        // Token will be re-validated on next page load
+        setIsAuthenticated(true);
       } finally {
         setIsLoading(false);
       }
