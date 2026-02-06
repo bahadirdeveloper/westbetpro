@@ -30,18 +30,24 @@ async function supabaseSelect(table: string, params: string): Promise<any[]> {
   return res.json();
 }
 
-async function supabaseUpdate(table: string, id: string, data: Record<string, any>): Promise<boolean> {
+async function supabaseUpdate(table: string, id: string, data: Record<string, any>): Promise<{ ok: boolean; status: number }> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
+      'Prefer': 'return=representation',
     },
     body: JSON.stringify(data),
   });
-  return res.ok;
+  // With return=representation, we can verify the update was applied
+  if (res.ok) {
+    const rows = await res.json();
+    // If empty array, the filter didn't match any rows (RLS or wrong ID)
+    return { ok: Array.isArray(rows) && rows.length > 0, status: res.status };
+  }
+  return { ok: false, status: res.status };
 }
 
 // --- Date & Team matching ---
@@ -269,7 +275,7 @@ export async function GET(request: Request) {
       }
 
       // Update via direct REST API (bypasses RLS issues with JS client)
-      const ok = await supabaseUpdate('predictions', pred.id, {
+      const result = await supabaseUpdate('predictions', pred.id, {
         is_live: status.is_live,
         is_finished: status.is_finished,
         live_status: status.live_status,
@@ -282,8 +288,12 @@ export async function GET(request: Request) {
         updated_at: new Date().toISOString()
       });
 
-      if (ok) updatedCount++;
+      if (result.ok) updatedCount++;
     }
+
+    // Count match statuses for debugging
+    const liveCount = predictions.filter((p: any) => p.is_live).length;
+    const finishedCount = predictions.filter((p: any) => p.is_finished).length;
 
     return NextResponse.json({
       success: true,
@@ -291,6 +301,9 @@ export async function GET(request: Request) {
       total_predictions: predictions.length,
       matched: matchedCount,
       updated: updatedCount,
+      fixtures_found: fixtures.length,
+      live: liveCount,
+      finished: finishedCount,
       updated_at: new Date().toISOString()
     });
 

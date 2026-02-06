@@ -98,14 +98,18 @@ export default function DashboardScreen() {
   // Fetch real data from backend
   useEffect(() => {
     let isFirst = true;
+    let isMounted = true;
 
     async function fetchOpportunities() {
       try {
         if (isFirst) { setLoading(true); setError(null); }
 
         const response = await fetch(`/api/opportunities?date=${selectedDate}&t=${Date.now()}`, {
-          cache: 'no-store'
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store' }
         });
+
+        if (!isMounted) return;
 
         const data: ApiResponse = await response.json();
 
@@ -118,7 +122,7 @@ export default function DashboardScreen() {
         }
       } catch (err) {
         console.error('Error fetching opportunities:', err);
-        if (isFirst) {
+        if (isFirst && isMounted) {
           setError('Veri yüklenirken hata oluştu.');
           setOpportunities([]);
         }
@@ -127,26 +131,45 @@ export default function DashboardScreen() {
       }
     }
 
-    // Trigger live score cron, wait for it, then fetch fresh data
+    // Trigger live score cron, wait for DB write, then fetch fresh data
     async function triggerAndRefresh() {
       try {
-        await fetch('/api/cron/live-scores').catch(() => {});
-        // Small delay so Supabase data propagates
-        await new Promise(r => setTimeout(r, 500));
-      } catch {}
-      await fetchOpportunities();
+        // Call cron and wait for full completion
+        const cronRes = await fetch(`/api/cron/live-scores?t=${Date.now()}`, {
+          cache: 'no-store'
+        });
+        if (cronRes.ok) {
+          const cronData = await cronRes.json();
+          console.log('[LiveScore] Cron result:', cronData.matched, 'matched,', cronData.updated, 'updated');
+        }
+        // Wait 1.5s for Supabase REST writes to propagate
+        await new Promise(r => setTimeout(r, 1500));
+      } catch (e) {
+        console.error('[LiveScore] Cron trigger failed:', e);
+      }
+      if (isMounted) await fetchOpportunities();
     }
 
     // Initial: trigger cron first, then load data
     triggerAndRefresh();
 
-    // UI refresh every 20 seconds (reads from Supabase - fast)
-    const uiInterval = setInterval(fetchOpportunities, 20000);
+    // Check if there are active (live/not_started) matches to decide polling rate
+    const hasActiveMatches = () => {
+      return opportunities.some(o => !o.is_finished);
+    };
 
-    // Live score cron every 90 seconds (calls API-Football + updates Supabase)
-    const cronInterval = setInterval(triggerAndRefresh, 90000);
+    // UI data refresh every 15 seconds
+    const uiInterval = setInterval(() => {
+      if (isMounted) fetchOpportunities();
+    }, 15000);
+
+    // Live score cron every 60 seconds (calls API-Football + updates Supabase)
+    const cronInterval = setInterval(() => {
+      if (isMounted) triggerAndRefresh();
+    }, 60000);
 
     return () => {
+      isMounted = false;
       clearInterval(uiInterval);
       clearInterval(cronInterval);
     };
@@ -232,22 +255,36 @@ export default function DashboardScreen() {
     }
   }
 
-  // Get next match (earliest one that hasn't started yet)
-  function getNextMatch(): Opportunity | null {
+  // Get next match (earliest one that hasn't started yet, or next live match)
+  function getNextMatch(): { match: Opportunity; label: string } | null {
     if (opportunities.length === 0) return null;
 
-    // Filter out matches that have started (live or finished)
-    const upcomingMatches = opportunities.filter((opp) => {
-      // If match is live or finished, it's not upcoming
-      if (opp.is_live || opp.is_finished) return false;
+    // Priority 1: Find live matches
+    const liveMatches = opportunities.filter((opp) => opp.is_live);
+    if (liveMatches.length > 0) {
+      return {
+        match: liveMatches[0],
+        label: `${liveMatches[0].elapsed || '?'}' oynanıyor`
+      };
+    }
 
-      // Double-check with time calculation
-      const timeUntil = getTimeUntilMatch(opp.Tarih, opp.Saat);
-      return timeUntil !== 'Başladı';
-    });
+    // Priority 2: Find not-started matches
+    const notStarted = opportunities.filter((opp) => !opp.is_live && !opp.is_finished);
+    if (notStarted.length > 0) {
+      const timeUntil = getTimeUntilMatch(notStarted[0].Tarih, notStarted[0].Saat);
+      return {
+        match: notStarted[0],
+        label: timeUntil === 'Başladı' ? 'Başlamak üzere' : timeUntil
+      };
+    }
 
-    // Return the first upcoming match (already sorted by time)
-    return upcomingMatches.length > 0 ? upcomingMatches[0] : null;
+    // Priority 3: All finished
+    const finished = opportunities.filter((opp) => opp.is_finished);
+    if (finished.length === opportunities.length) {
+      return null; // All done
+    }
+
+    return null;
   }
 
   // Get match status badge
@@ -446,18 +483,30 @@ export default function DashboardScreen() {
               <p className="text-slate-500 text-sm mb-1 uppercase tracking-wider font-bold">
                 Sıradaki Maç
               </p>
-              {getNextMatch() ? (
-                <div>
-                  <h3 className="text-2xl font-western text-white mb-1">
-                    {getTimeUntilMatch(getNextMatch()!.Tarih, getNextMatch()!.Saat)}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    {getNextMatch()!['Ev Sahibi']} vs {getNextMatch()!.Deplasman}
-                  </p>
-                </div>
-              ) : (
-                <h3 className="text-2xl font-western text-white">-</h3>
-              )}
+              {(() => {
+                const next = getNextMatch();
+                if (next) {
+                  return (
+                    <div>
+                      <h3 className="text-2xl font-western text-white mb-1">
+                        {next.label}
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        {next.match['Ev Sahibi']} vs {next.match.Deplasman}
+                      </p>
+                    </div>
+                  );
+                }
+                const allFinished = opportunities.length > 0 && opportunities.every(o => o.is_finished);
+                return allFinished ? (
+                  <div>
+                    <h3 className="text-2xl font-western text-white mb-1">Tamamlandı</h3>
+                    <p className="text-xs text-slate-400">Tüm maçlar bitti</p>
+                  </div>
+                ) : (
+                  <h3 className="text-2xl font-western text-white">-</h3>
+                );
+              })()}
             </div>
           </div>
 
