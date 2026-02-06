@@ -84,7 +84,11 @@ async function fetchFromSupabase(dateParam: string): Promise<any[] | null> {
       .eq('status', 'active')
       .order('confidence', { ascending: false });
 
-    if (error || !data || data.length === 0) return null;
+    if (error) {
+      console.error('Supabase query error:', error);
+      return null;
+    }
+    if (!data || data.length === 0) return null;
 
     // Transform Supabase predictions to UI format
     return data.map((pred) => ({
@@ -193,8 +197,73 @@ export async function GET(request: Request) {
     let opportunities = tryLocalFile(date);
 
     // Strategy 2: Fall back to Supabase (works in Vercel/production)
+    let supabaseError: string | null = null;
     if (!opportunities) {
-      opportunities = await fetchFromSupabase(date);
+      try {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const targetDate = getTargetDate(date);
+          // First: simple count query to debug
+          const { count, error: countErr } = await supabase
+            .from('predictions')
+            .select('*', { count: 'exact', head: true })
+            .eq('match_date', targetDate);
+
+          if (countErr) {
+            supabaseError = `count error: ${countErr.message} (code: ${countErr.code})`;
+          } else {
+            supabaseError = `count for ${targetDate}: ${count}`;
+          }
+
+          // Now try full fetch without status filter
+          const { data, error: fetchErr } = await supabase
+            .from('predictions')
+            .select('*')
+            .eq('match_date', targetDate)
+            .order('confidence', { ascending: false });
+
+          if (fetchErr) {
+            supabaseError += ` | fetch error: ${fetchErr.message}`;
+          } else if (data && data.length > 0) {
+            opportunities = data.map((pred: any) => ({
+              'Ev Sahibi': pred.home_team || '',
+              'Deplasman': pred.away_team || '',
+              'Lig': pred.league || '',
+              'Tarih': formatDateTurkish(pred.match_date || targetDate),
+              'Saat': pred.match_time || '',
+              'best_prediction': pred.prediction || '',
+              'best_confidence': pred.confidence || 0,
+              'alternatif_tahminler': (pred.alternative_predictions || []).map((alt: any) => ({
+                tahmin: alt.bet || alt.tahmin || '',
+                güven: alt.confidence || alt.güven || 0,
+                not: alt.note || alt.not || ''
+              })),
+              'eşleşen_kurallar': (pred.matched_rules || []).map((r: any) => ({
+                kural_id: r.rule_id || r.kural_id || '',
+                kural_adı: r.rule_name || r.kural_adı || ''
+              })),
+              'toplam_tahmin_sayısı': (pred.alternative_predictions || []).length + 1,
+              'predictions': pred.alternative_predictions || [],
+              'matched_rules': pred.matched_rules || [],
+              'note': pred.note || '',
+              'live_status': 'not_started',
+              'home_score': null,
+              'away_score': null,
+              'halftime_home': null,
+              'halftime_away': null,
+              'elapsed': null,
+              'is_live': false,
+              'is_finished': false,
+              'prediction_result': null
+            }));
+            supabaseError += ` | fetched ${data.length} rows`;
+          } else {
+            supabaseError += ` | no rows returned`;
+          }
+        }
+      } catch (e: any) {
+        supabaseError = `exception: ${e.message}`;
+      }
     }
 
     // No data from either source
@@ -205,11 +274,12 @@ export async function GET(request: Request) {
         opportunities: [],
         message: 'Şu anda gösterilecek fırsat maç bulunamadı.',
         debug: {
-          version: 'v2-supabase-fallback',
+          version: 'v3-inline-supabase',
           date,
           targetDate: getTargetDate(date),
           hasLocalFile: tryLocalFile(date) !== null,
           hasSupabaseEnv: hasSupabase,
+          supabaseResult: supabaseError,
         }
       }, { status: 200 });
     }
