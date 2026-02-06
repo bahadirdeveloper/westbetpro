@@ -11,6 +11,8 @@ interface Log {
   details: any;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function LogsViewerScreen() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export default function LogsViewerScreen() {
       const params = new URLSearchParams({ limit: '100' });
       if (level) params.append('level', level);
 
-      const response = await fetch(`http://localhost:8000/api/logs?${params}`, {
+      const response = await fetch(`${API_BASE}/api/logs?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

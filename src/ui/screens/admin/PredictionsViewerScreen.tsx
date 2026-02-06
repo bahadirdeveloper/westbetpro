@@ -17,6 +17,8 @@ interface Prediction {
   alternative_predictions: any[];
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function PredictionsViewerScreen() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export default function PredictionsViewerScreen() {
     setLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch('http://localhost:8000/api/predictions?limit=100', {
+      const response = await fetch(`${API_BASE}/api/predictions?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

@@ -13,6 +13,8 @@ interface Run {
   triggered_by: string;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function EngineControlScreen() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export default function EngineControlScreen() {
   const fetchRuns = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch('http://localhost:8000/api/engine/runs?limit=20', {
+      const response = await fetch(`${API_BASE}/api/engine/runs?limit=20`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -41,7 +43,7 @@ export default function EngineControlScreen() {
 
   const handleRunEngine = async () => {
     const token = localStorage.getItem('admin_token');
-    const response = await fetch('http://localhost:8000/api/engine/run', {
+    const response = await fetch(`${API_BASE}/api/engine/run`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,7 +62,7 @@ export default function EngineControlScreen() {
 
   const handleTrackResults = async (daysBack: number) => {
     const token = localStorage.getItem('admin_token');
-    const response = await fetch('http://localhost:8000/api/results/track', {
+    const response = await fetch(`${API_BASE}/api/results/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

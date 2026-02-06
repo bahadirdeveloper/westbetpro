@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import AdminSidebar from '@/ui/components/admin/AdminSidebar';
 import Header from '@/ui/components/Header';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -27,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
 
       try {
-        const response = await fetch('http://localhost:8000/api/health', {
+        const response = await fetch(`${API_BASE}/api/health`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

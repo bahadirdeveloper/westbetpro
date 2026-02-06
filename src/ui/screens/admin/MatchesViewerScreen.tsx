@@ -16,6 +16,8 @@ interface Match {
   status: string;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function MatchesViewerScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function MatchesViewerScreen() {
       });
       if (league) params.append('league', league);
 
-      const response = await fetch(`http://localhost:8000/api/matches?${params}`, {
+      const response = await fetch(`${API_BASE}/api/matches?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

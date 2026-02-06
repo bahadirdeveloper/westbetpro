@@ -31,6 +31,8 @@ interface ApiUsageData {
   checked_at: string;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function AdminDashboardScreen() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [apiUsage, setApiUsage] = useState<ApiUsageData | null>(null);
@@ -40,7 +42,7 @@ export default function AdminDashboardScreen() {
   const fetchOverview = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch('http://localhost:8000/api/admin/analytics/overview', {
+      const response = await fetch(`${API_BASE}/api/admin/analytics/overview`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -60,7 +62,7 @@ export default function AdminDashboardScreen() {
   const fetchApiUsage = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch('http://localhost:8000/api/admin/api-usage/status', {
+      const response = await fetch(`${API_BASE}/api/admin/api-usage/status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -79,7 +81,7 @@ export default function AdminDashboardScreen() {
 
   const handleRunEngine = async () => {
     const token = localStorage.getItem('admin_token');
-    const response = await fetch('http://localhost:8000/api/engine/run', {
+    const response = await fetch(`${API_BASE}/api/engine/run`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +100,7 @@ export default function AdminDashboardScreen() {
 
   const handleTrackResults = async (daysBack: number) => {
     const token = localStorage.getItem('admin_token');
-    const response = await fetch('http://localhost:8000/api/results/track', {
+    const response = await fetch(`${API_BASE}/api/results/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

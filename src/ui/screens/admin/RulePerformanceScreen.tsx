@@ -15,6 +15,8 @@ interface Rule {
   status: 'excellent' | 'good' | 'warning' | 'poor';
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function RulePerformanceScreen() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function RulePerformanceScreen() {
     try {
       const token = localStorage.getItem('admin_token');
       const response = await fetch(
-        `http://localhost:8000/api/admin/analytics/rule-performance?min_predictions=${minPredictions}`,
+        `${API_BASE}/api/admin/analytics/rule-performance?min_predictions=${minPredictions}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
