@@ -1,6 +1,2 @@
 backend/
-api/
-data/
-*.py
-*.pyc
 __pycache__/
