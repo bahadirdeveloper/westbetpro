@@ -1,0 +1,641 @@
+[
+  {
+    "Ev Sahibi": "POGON SZCZECİN",
+    "Deplasman": "NİECİECZA",
+    "Lig": "POLEK",
+    "Tarih": "08.02.2026",
+    "Saat": "14:15",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 91,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "MS 1.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 2.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 3.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "MS EV 1.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "KG VAR",
+        "güven": 90,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 402,
+        "kural_adı": "4-5 gol 2.80 + 2.5 üst 1.38"
+      }
+    ],
+    "toplam_tahmin_sayısı": 6,
+    "predictions": [
+      {
+        "bet": "MS 1.5 ÜST",
+        "rule_id": 402,
+        "rule_name": "4-5 gol 2.80 + 2.5 üst 1.38",
+        "confidence": 90
+      },
+      {
+        "bet": "MS 2.5 ÜST",
+        "rule_id": 402,
+        "rule_name": "4-5 gol 2.80 + 2.5 üst 1.38",
+        "confidence": 90
+      },
+      {
+        "bet": "MS 3.5 ÜST",
+        "rule_id": 402,
+        "rule_name": "4-5 gol 2.80 + 2.5 üst 1.38",
+        "confidence": 90
+      },
+      {
+        "bet": "MS EV 1.5 ÜST",
+        "rule_id": 402,
+        "rule_name": "4-5 gol 2.80 + 2.5 üst 1.38",
+        "confidence": 90
+      },
+      {
+        "bet": "KG VAR",
+        "rule_id": 402,
+        "rule_name": "4-5 gol 2.80 + 2.5 üst 1.38",
+        "confidence": 90
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 402,
+        "rule_name": "4-5 gol 2.80 + 2.5 üst 1.38"
+      }
+    ],
+    "note": "6 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "SERVETTE",
+    "Deplasman": "THUN",
+    "Lig": "İSVİÇ",
+    "Tarih": "08.02.2026",
+    "Saat": "16:00",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 91,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "İY 1.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "İY EV 0.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 2.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 3.5 ÜST",
+        "güven": 90,
+        "not": ""
+      },
+      {
+        "tahmin": "KG VAR",
+        "güven": 90,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 45,
+        "kural_adı": "4-5 gol 2.98 + 3.5 alt 1.43"
+      }
+    ],
+    "toplam_tahmin_sayısı": 6,
+    "predictions": [
+      {
+        "bet": "İY 1.5 ÜST",
+        "rule_id": 45,
+        "rule_name": "4-5 gol 2.98 + 3.5 alt 1.43",
+        "confidence": 90
+      },
+      {
+        "bet": "İY EV 0.5 ÜST",
+        "rule_id": 45,
+        "rule_name": "4-5 gol 2.98 + 3.5 alt 1.43",
+        "confidence": 90
+      },
+      {
+        "bet": "MS 2.5 ÜST",
+        "rule_id": 45,
+        "rule_name": "4-5 gol 2.98 + 3.5 alt 1.43",
+        "confidence": 90
+      },
+      {
+        "bet": "MS 3.5 ÜST",
+        "rule_id": 45,
+        "rule_name": "4-5 gol 2.98 + 3.5 alt 1.43",
+        "confidence": 90
+      },
+      {
+        "bet": "KG VAR",
+        "rule_id": 45,
+        "rule_name": "4-5 gol 2.98 + 3.5 alt 1.43",
+        "confidence": 90
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 45,
+        "rule_name": "4-5 gol 2.98 + 3.5 alt 1.43"
+      }
+    ],
+    "note": "6 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "ÜMRANİYESPOR",
+    "Deplasman": "İSTANBULSPOR",
+    "Lig": "T1L",
+    "Tarih": "08.02.2026",
+    "Saat": "16:00",
+    "best_prediction": "MS 0.5 ÜST",
+    "best_confidence": 90,
+    "alternatif_tahminler": [],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 26,
+        "kural_adı": "4-5 gol 2.96"
+      }
+    ],
+    "toplam_tahmin_sayısı": 1,
+    "predictions": [],
+    "matched_rules": [
+      {
+        "rule_id": 26,
+        "rule_name": "4-5 gol 2.96"
+      }
+    ],
+    "note": "1 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "AZ ALKMAAR",
+    "Deplasman": "AJAX",
+    "Lig": "HOLL",
+    "Tarih": "08.02.2026",
+    "Saat": "16:30",
+    "best_prediction": "MS 1.5 ÜST",
+    "best_confidence": 92,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "MS 1.5 ÜST",
+        "güven": 90,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 19,
+        "kural_adı": "4-5 gol 2.91"
+      },
+      {
+        "kural_id": 192,
+        "kural_adı": "4-5 gol 2.91 + 2.5 üst 1.44"
+      }
+    ],
+    "toplam_tahmin_sayısı": 2,
+    "predictions": [
+      {
+        "bet": "MS 1.5 ÜST",
+        "rule_id": 192,
+        "rule_name": "4-5 gol 2.91 + 2.5 üst 1.44",
+        "confidence": 90
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 19,
+        "rule_name": "4-5 gol 2.91"
+      },
+      {
+        "rule_id": 192,
+        "rule_name": "4-5 gol 2.91 + 2.5 üst 1.44"
+      }
+    ],
+    "note": "2 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "WOLFSBERG",
+    "Deplasman": "GRAZER AK",
+    "Lig": "AVU",
+    "Tarih": "08.02.2026",
+    "Saat": "16:30",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 88,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "MS 1.5 ÜST",
+        "güven": 87,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 34,
+        "kural_adı": "4-5 gol 4.19"
+      }
+    ],
+    "toplam_tahmin_sayısı": 2,
+    "predictions": [
+      {
+        "bet": "MS 1.5 ÜST",
+        "rule_id": 34,
+        "rule_name": "4-5 gol 4.19",
+        "confidence": 87
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 34,
+        "rule_name": "4-5 gol 4.19"
+      }
+    ],
+    "note": "2 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "BASEL",
+    "Deplasman": "ZÜRİH",
+    "Lig": "İSVİÇ",
+    "Tarih": "08.02.2026",
+    "Saat": "18:30",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 89,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "İY 1.5 ÜST",
+        "güven": 88,
+        "not": ""
+      },
+      {
+        "tahmin": "İY KG VAR",
+        "güven": 88,
+        "not": ""
+      },
+      {
+        "tahmin": "MS KG VAR",
+        "güven": 88,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 1.5 ÜST",
+        "güven": 88,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 42,
+        "kural_adı": "4-5 gol 2.68"
+      }
+    ],
+    "toplam_tahmin_sayısı": 5,
+    "predictions": [
+      {
+        "bet": "İY 1.5 ÜST",
+        "rule_id": 42,
+        "rule_name": "4-5 gol 2.68",
+        "confidence": 88
+      },
+      {
+        "bet": "İY KG VAR",
+        "rule_id": 42,
+        "rule_name": "4-5 gol 2.68",
+        "confidence": 88
+      },
+      {
+        "bet": "MS KG VAR",
+        "rule_id": 42,
+        "rule_name": "4-5 gol 2.68",
+        "confidence": 88
+      },
+      {
+        "bet": "MS 1.5 ÜST",
+        "rule_id": 42,
+        "rule_name": "4-5 gol 2.68",
+        "confidence": 88
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 42,
+        "rule_name": "4-5 gol 2.68"
+      }
+    ],
+    "note": "5 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": null,
+    "away_score": null,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false,
+    "prediction_result": null
+  },
+  {
+    "Ev Sahibi": "MANİSA FK",
+    "Deplasman": "BOLUSPOR",
+    "Lig": "T1L",
+    "Tarih": "08.02.2026",
+    "Saat": "19:00",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 92,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "MS 2.5 ÜST",
+        "güven": 91,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 3.5 ÜST",
+        "güven": 91,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 9,
+        "kural_adı": "4-5 gol 3.15 (KG VAR 1.50 HARİÇ)"
+      }
+    ],
+    "toplam_tahmin_sayısı": 3,
+    "predictions": [
+      {
+        "bet": "MS 2.5 ÜST",
+        "rule_id": 9,
+        "rule_name": "4-5 gol 3.15 (KG VAR 1.50 HARİÇ)",
+        "confidence": 91
+      },
+      {
+        "bet": "MS 3.5 ÜST",
+        "rule_id": 9,
+        "rule_name": "4-5 gol 3.15 (KG VAR 1.50 HARİÇ)",
+        "confidence": 91
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 9,
+        "rule_name": "4-5 gol 3.15 (KG VAR 1.50 HARİÇ)"
+      }
+    ],
+    "note": "3 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "VİKTORİA PLZEN",
+    "Deplasman": "SLOVAN LİBEREC",
+    "Lig": "ÇEK",
+    "Tarih": "08.02.2026",
+    "Saat": "20:30",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 88,
+    "alternatif_tahminler": [],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 41,
+        "kural_adı": "4-5 gol 3.55"
+      }
+    ],
+    "toplam_tahmin_sayısı": 1,
+    "predictions": [],
+    "matched_rules": [
+      {
+        "rule_id": 41,
+        "rule_name": "4-5 gol 3.55"
+      }
+    ],
+    "note": "1 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "BRAGA",
+    "Deplasman": "RİO AVE",
+    "Lig": "PORP",
+    "Tarih": "08.02.2026",
+    "Saat": "21:00",
+    "best_prediction": "MS 1.5 ÜST",
+    "best_confidence": 90,
+    "alternatif_tahminler": [],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 18,
+        "kural_adı": "4-5 gol 2.92"
+      }
+    ],
+    "toplam_tahmin_sayısı": 1,
+    "predictions": [],
+    "matched_rules": [
+      {
+        "rule_id": 18,
+        "rule_name": "4-5 gol 2.92"
+      }
+    ],
+    "note": "1 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "DUİSBURG",
+    "Deplasman": "SC VERL",
+    "Lig": "AL3",
+    "Tarih": "08.02.2026",
+    "Saat": "21:30",
+    "best_prediction": "İY 0.5 ÜST",
+    "best_confidence": 92,
+    "alternatif_tahminler": [
+      {
+        "tahmin": "İY DEP 0.5 ÜST",
+        "güven": 91,
+        "not": ""
+      },
+      {
+        "tahmin": "MS 1.5 ÜST",
+        "güven": 91,
+        "not": ""
+      },
+      {
+        "tahmin": "MS EV 0.5 ÜST",
+        "güven": 91,
+        "not": ""
+      },
+      {
+        "tahmin": "MS DEP 0.5 ÜST",
+        "güven": 91,
+        "not": ""
+      },
+      {
+        "tahmin": "KG VAR",
+        "güven": 91,
+        "not": ""
+      }
+    ],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 38,
+        "kural_adı": "4-5 gol 3.04"
+      }
+    ],
+    "toplam_tahmin_sayısı": 6,
+    "predictions": [
+      {
+        "bet": "İY DEP 0.5 ÜST",
+        "rule_id": 38,
+        "rule_name": "4-5 gol 3.04",
+        "confidence": 91
+      },
+      {
+        "bet": "MS 1.5 ÜST",
+        "rule_id": 38,
+        "rule_name": "4-5 gol 3.04",
+        "confidence": 91
+      },
+      {
+        "bet": "MS EV 0.5 ÜST",
+        "rule_id": 38,
+        "rule_name": "4-5 gol 3.04",
+        "confidence": 91
+      },
+      {
+        "bet": "MS DEP 0.5 ÜST",
+        "rule_id": 38,
+        "rule_name": "4-5 gol 3.04",
+        "confidence": 91
+      },
+      {
+        "bet": "KG VAR",
+        "rule_id": 38,
+        "rule_name": "4-5 gol 3.04",
+        "confidence": 91
+      }
+    ],
+    "matched_rules": [
+      {
+        "rule_id": 38,
+        "rule_name": "4-5 gol 3.04"
+      }
+    ],
+    "note": "6 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  },
+  {
+    "Ev Sahibi": "VALENCİA",
+    "Deplasman": "REAL MADRİD",
+    "Lig": "İSPL1",
+    "Tarih": "08.02.2026",
+    "Saat": "23:00",
+    "best_prediction": "MS 0.5 ÜST",
+    "best_confidence": 90,
+    "alternatif_tahminler": [],
+    "eşleşen_kurallar": [
+      {
+        "kural_id": 26,
+        "kural_adı": "4-5 gol 2.96"
+      }
+    ],
+    "toplam_tahmin_sayısı": 1,
+    "predictions": [],
+    "matched_rules": [
+      {
+        "rule_id": 26,
+        "rule_name": "4-5 gol 2.96"
+      }
+    ],
+    "note": "1 tahmin mevcut",
+    "live_status": "not_started",
+    "home_score": 0,
+    "away_score": 0,
+    "halftime_home": null,
+    "halftime_away": null,
+    "elapsed": null,
+    "is_live": false,
+    "is_finished": false
+  }
+]
