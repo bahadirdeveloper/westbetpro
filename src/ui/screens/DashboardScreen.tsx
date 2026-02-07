@@ -402,17 +402,35 @@ export default function DashboardScreen() {
     return null;
   }
 
+  // Calculate total prediction count across all matches
+  function getTotalPredictionCount(): number {
+    return opportunities.reduce((sum, opp) => {
+      return sum + getAllPredictions(opp).length;
+    }, 0);
+  }
+
   // Calculate daily success rate (finished / total opportunities)
   function getDailySuccessRate() {
     const finished = opportunities.filter((o) => o.is_finished);
     const total = opportunities.length;
 
-    if (finished.length === 0) return { won: 0, finished: 0, total, rate: 0 };
+    if (finished.length === 0) return { won: 0, finished: 0, total, rate: 0, totalPreds: getTotalPredictionCount(), totalPredWon: 0, totalPredFinished: 0 };
 
     const won = finished.filter((o) => o.prediction_result === true).length;
     const rate = finished.length > 0 ? (won / finished.length) * 100 : 0;
 
-    return { won, finished: finished.length, total, rate };
+    // Count all predictions that were correct across finished matches
+    let totalPredWon = 0;
+    let totalPredFinished = 0;
+    finished.forEach(opp => {
+      const preds = getAllPredictions(opp);
+      preds.forEach(p => {
+        if (p.sonuç === true) totalPredWon++;
+        if (p.sonuç === true || p.sonuç === false) totalPredFinished++;
+      });
+    });
+
+    return { won, finished: finished.length, total, rate, totalPreds: getTotalPredictionCount(), totalPredWon, totalPredFinished };
   }
 
   return (
@@ -492,6 +510,9 @@ export default function DashboardScreen() {
                 Firsat Mac Sayisi
               </p>
               <h3 className="text-2xl sm:text-3xl font-western text-white">{opportunities.length}</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Toplam {getTotalPredictionCount()} tahmin
+              </p>
             </div>
 
             <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-aged-gold/20 transition-all group">
@@ -510,19 +531,22 @@ export default function DashboardScreen() {
                 const success = getDailySuccessRate();
                 return success.finished > 0 ? (
                   <div>
-                    <h3 className="text-3xl font-western text-white mb-1">
-                      {success.finished} / {success.total}
+                    <h3 className="text-2xl sm:text-3xl font-western text-white mb-1">
+                      {success.won}/{success.finished} Mac
                     </h3>
                     <p className="text-xs text-slate-400">
-                      {success.won}/{success.finished} Tuttu · %{success.rate.toFixed(0)}
+                      %{success.rate.toFixed(0)} basari
+                      {success.totalPredFinished > 0 && (
+                        <span> · {success.totalPredWon}/{success.totalPredFinished} tahmin tuttu</span>
+                      )}
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <h3 className="text-3xl font-western text-white mb-1">
+                    <h3 className="text-2xl sm:text-3xl font-western text-white mb-1">
                       0 / {success.total}
                     </h3>
-                    <p className="text-xs text-slate-400">Henüz maç bitmedi</p>
+                    <p className="text-xs text-slate-400">Henuz mac bitmedi · {success.totalPreds} tahmin</p>
                   </div>
                 );
               })()}
