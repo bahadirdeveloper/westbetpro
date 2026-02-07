@@ -96,6 +96,7 @@ export default function LiveAnalysisScreen() {
         if (isFirst) setLoading(true);
         const res = await fetch(`/api/live-alerts?t=${Date.now()}`, { cache: 'no-store' });
         if (!isMounted) return;
+        if (!res.ok) throw new Error(`API hatasi: ${res.status}`);
         const data = await res.json();
         if (data.success) {
           setAlerts(data.alerts || []);
@@ -175,7 +176,7 @@ export default function LiveAnalysisScreen() {
       <div
         key={alert.id}
         onClick={() => setSelectedMatch(alert)}
-        className={`bg-card-dark rounded-2xl p-4 sm:p-5 relative overflow-hidden cursor-pointer ${getAlertCardClass(level, alert.isLive)} transition-all hover:scale-[1.01]`}
+        className={`bg-card-dark rounded-2xl p-4 sm:p-5 relative overflow-hidden cursor-pointer ${getAlertCardClass(level, alert.isLive)} transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20`}
       >
         {/* Alert Level Badge */}
         {level === 'hot' && alert.isLive && (
@@ -231,9 +232,14 @@ export default function LiveAnalysisScreen() {
               <>
                 <span className="text-aged-gold text-2xl font-bold">{alert.currentScore}</span>
                 {alert.isLive && alert.elapsed > 0 && (
-                  <span className="text-xs text-slate-400 bg-white/5 px-2 py-0.5 rounded">
-                    {alert.elapsed}&apos;
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded font-bold">
+                      {alert.elapsed}&apos;
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {alert.elapsed <= 45 ? `${45 - alert.elapsed} dk kaldi (IY)` : alert.elapsed <= 90 ? `${90 - alert.elapsed} dk kaldi` : 'Uzatma'}
+                    </span>
+                  </div>
                 )}
               </>
             ) : (
@@ -349,7 +355,7 @@ export default function LiveAnalysisScreen() {
 
           {/* Stats Bar */}
           {!loading && stats.total > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
               {stats.hot > 0 && (
                 <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-primary">{stats.hot}</p>
@@ -375,13 +381,17 @@ export default function LiveAnalysisScreen() {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Biten</p>
               </div>
               {stats.finished > 0 && (
-                <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
+                <div className={`border rounded-xl p-3 text-center ${
+                  stats.won > stats.lost ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'
+                }`}>
                   <p className="text-2xl font-bold">
                     <span className="text-green-400">{stats.won}</span>
                     <span className="text-slate-500 mx-1">/</span>
                     <span className="text-red-400">{stats.lost}</span>
                   </p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tuttu/Yatti</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    {stats.finished > 0 ? `%${Math.round((stats.won / stats.finished) * 100)} basari` : 'Tuttu/Yatti'}
+                  </p>
                 </div>
               )}
             </div>
@@ -597,7 +607,14 @@ export default function LiveAnalysisScreen() {
                   <>
                     <p className="text-4xl sm:text-5xl font-bold text-aged-gold">{selectedMatch.currentScore}</p>
                     {selectedMatch.isLive && selectedMatch.elapsed > 0 && (
-                      <p className="text-sm text-slate-400 mt-1">{selectedMatch.elapsed}&apos; dakika</p>
+                      <div className="flex items-center justify-center gap-3 mt-2">
+                        <span className="text-sm text-green-400 font-bold bg-green-500/10 px-3 py-1 rounded-lg">
+                          {selectedMatch.elapsed}&apos; dakika
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {selectedMatch.elapsed <= 45 ? `${45 - selectedMatch.elapsed} dk kaldi (IY)` : selectedMatch.elapsed <= 90 ? `${90 - selectedMatch.elapsed} dk kaldi` : 'Uzatma'}
+                        </span>
+                      </div>
                     )}
                   </>
                 ) : (

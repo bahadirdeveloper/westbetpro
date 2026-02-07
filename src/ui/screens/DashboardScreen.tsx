@@ -121,6 +121,7 @@ export default function DashboardScreen() {
         });
 
         if (!isMounted) return;
+        if (!response.ok) throw new Error(`API hatasi: ${response.status}`);
 
         const data: ApiResponse = await response.json();
 
@@ -298,29 +299,25 @@ export default function DashboardScreen() {
   function getNextMatch(): { match: Opportunity; label: string } | null {
     if (opportunities.length === 0) return null;
 
-    // Priority 1: Find live matches
-    const liveMatches = opportunities.filter((opp) => opp.is_live);
-    if (liveMatches.length > 0) {
-      return {
-        match: liveMatches[0],
-        label: `${liveMatches[0].elapsed || '?'}' oynanıyor`
-      };
-    }
-
-    // Priority 2: Find not-started matches
+    // Priority 1: Find not-started matches (show countdown)
     const notStarted = opportunities.filter((opp) => !opp.is_live && !opp.is_finished);
     if (notStarted.length > 0) {
       const timeUntil = getTimeUntilMatch(notStarted[0].Tarih, notStarted[0].Saat);
       return {
         match: notStarted[0],
-        label: timeUntil === 'Başladı' ? 'Başlamak üzere' : timeUntil
+        label: timeUntil === 'Başladı' ? 'Başlamak üzere' : `${timeUntil} sonra`
       };
     }
 
-    // Priority 3: All finished
-    const finished = opportunities.filter((opp) => opp.is_finished);
-    if (finished.length === opportunities.length) {
-      return null; // All done
+    // Priority 2: Find live matches (show elapsed time)
+    const liveMatches = opportunities.filter((opp) => opp.is_live);
+    if (liveMatches.length > 0) {
+      const elapsed = liveMatches[0].elapsed || 0;
+      const remaining = elapsed <= 45 ? `${45 - elapsed} dk (İY)` : elapsed <= 90 ? `${90 - elapsed} dk` : 'Uzatma';
+      return {
+        match: liveMatches[0],
+        label: remaining
+      };
     }
 
     return null;
@@ -530,14 +527,19 @@ export default function DashboardScreen() {
             {(() => {
               const next = getNextMatch();
               if (next) {
+                const isLive = next.match.is_live;
+                const scoreText = isLive && next.match.home_score !== null && next.match.home_score !== undefined
+                  ? `${next.match.home_score}-${next.match.away_score} (${next.match.elapsed || '?'}')`
+                  : undefined;
                 return (
                   <WesternScoreboard
-                    title="Siradaki Mac"
+                    title={isLive ? 'Canli Mac' : 'Siradaki Mac'}
                     value={next.label}
                     subtitle={`${next.match['Ev Sahibi']} vs ${next.match.Deplasman}`}
-                    accentColor="saddle-brown"
-                    icon="schedule"
-                    badge="YAKLASAN"
+                    secondLine={scoreText}
+                    accentColor={isLive ? 'primary' : 'saddle-brown'}
+                    icon={isLive ? 'sports_soccer' : 'schedule'}
+                    badge={isLive ? 'CANLI' : 'YAKLASAN'}
                   />
                 );
               }
@@ -585,7 +587,13 @@ export default function DashboardScreen() {
           {/* Match Cards - REAL DATA ONLY */}
           {!loading && !error && opportunities.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
-              {opportunities.map((opp, index) => {
+              {[...opportunities].sort((a, b) => {
+                // Live first, then not-started, then finished
+                const priority = (o: Opportunity) => o.is_live ? 0 : o.is_finished ? 2 : 1;
+                const diff = priority(a) - priority(b);
+                if (diff !== 0) return diff;
+                return b.best_confidence - a.best_confidence;
+              }).map((opp, index) => {
                 const allPreds = getAllPredictions(opp);
                 const totalPredCount = allPreds.length;
                 const badge = getBadgeRank(opp.best_confidence);
@@ -595,10 +603,12 @@ export default function DashboardScreen() {
                   <div
                     key={index}
                     className={`bg-card-dark p-4 sm:p-5 rounded-2xl border ${
-                      opp.best_confidence >= 95
-                        ? 'border-aged-gold/30'
-                        : 'border-white/5'
-                    } relative overflow-hidden group hover:scale-[1.01] sm:hover:scale-[1.02] transition-transform`}
+                      opp.is_live ? 'border-green-500/30' :
+                      opp.is_finished && opp.prediction_result === true ? 'border-green-500/20' :
+                      opp.is_finished && opp.prediction_result === false ? 'border-red-500/20' :
+                      opp.best_confidence >= 95 ? 'border-aged-gold/30' :
+                      'border-white/5'
+                    } relative overflow-hidden group hover:-translate-y-1 transition-all duration-200 hover:shadow-lg hover:shadow-black/20`}
                   >
                     {/* Sheriff Badge (top right) */}
                     {badge && (
@@ -717,23 +727,26 @@ export default function DashboardScreen() {
                     </div>
 
                     {/* Match Date & Time */}
-                    <div className="text-xs text-slate-500 mb-3">
-                      <span className="material-icons-round text-xs align-middle mr-1">
-                        schedule
-                      </span>
-                      {opp.Tarih} • {opp.Saat}
+                    <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
+                      <span className="material-icons-round text-xs">schedule</span>
+                      <span>{opp.Tarih} • {opp.Saat}</span>
+                      {opp.is_live && opp.elapsed && (
+                        <span className="ml-auto text-green-400 font-bold bg-green-500/10 px-1.5 py-0.5 rounded text-[10px]">
+                          {opp.elapsed}&apos;
+                        </span>
+                      )}
                     </div>
 
                     {/* Action Button */}
                     <button
-                      onClick={() => setSelectedOpportunity(opp)}
-                      className={`w-full py-2 ${
+                      onClick={(e) => { e.stopPropagation(); setSelectedOpportunity(opp); }}
+                      className={`w-full py-2.5 ${
                         opp.best_confidence >= 90
-                          ? 'bg-primary hover:bg-primary/90'
+                          ? 'bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30'
                           : opp.best_confidence >= 85
-                          ? 'bg-aged-gold hover:bg-aged-gold/90 text-black'
-                          : 'bg-saddle-brown hover:bg-saddle-brown/90'
-                      } text-white text-xs font-bold rounded-lg tracking-widest uppercase transition-all`}
+                          ? 'bg-aged-gold/15 hover:bg-aged-gold/25 text-aged-gold border border-aged-gold/25'
+                          : 'bg-saddle-brown/15 hover:bg-saddle-brown/25 text-saddle-brown border border-saddle-brown/25'
+                      } text-xs font-bold rounded-lg tracking-widest uppercase transition-all`}
                     >
                       DETAYLARI GOR
                     </button>

@@ -103,6 +103,7 @@ export default function HistoricalDataScreen() {
       try {
         setLoadingDates(true);
         const res = await fetch('/api/history', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`API hatasi: ${res.status}`);
         const data = await res.json();
         if (data.success) {
           setDates(data.dates || []);
@@ -130,6 +131,7 @@ export default function HistoricalDataScreen() {
         setLoadingDetail(true);
         setDateDetail(null);
         const res = await fetch(`/api/history?date=${selectedDate}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`API hatasi: ${res.status}`);
         const data = await res.json();
         if (data.success) {
           setDateDetail(data);
@@ -238,16 +240,48 @@ export default function HistoricalDataScreen() {
 
           {!loadingDates && dates.length > 0 && (
             <div className="flex flex-col lg:flex-row gap-6">
-              {/* Date Selector - Left Panel */}
+              {/* Date Selector - Left Panel (horizontal on mobile, sidebar on desktop) */}
               <div className="lg:w-72 xl:w-80 flex-shrink-0">
-                <div className="bg-card-dark rounded-2xl border border-white/5 overflow-hidden sticky top-14">
-                  <div className="p-4 border-b border-white/5">
+                <div className="bg-card-dark rounded-2xl border border-white/5 overflow-hidden lg:sticky lg:top-14">
+                  <div className="p-3 lg:p-4 border-b border-white/5 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <span className="material-icons-round text-aged-gold text-base">calendar_month</span>
                       Tarih Seçin
                     </h3>
+                    <span className="text-[10px] text-slate-600 lg:hidden">{dates.length} gun</span>
                   </div>
-                  <div className="max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar">
+                  {/* Mobile: Horizontal scroll */}
+                  <div className="flex lg:hidden overflow-x-auto no-scrollbar gap-2 p-3">
+                    {dates.map((d) => {
+                      const isSelected = selectedDate === d.date;
+                      return (
+                        <button
+                          key={d.date}
+                          onClick={() => setSelectedDate(d.date)}
+                          className={`flex-shrink-0 px-3 py-2 rounded-lg text-center transition-all ${
+                            isSelected
+                              ? 'bg-primary/15 border border-primary/30 text-primary'
+                              : 'bg-white/5 border border-white/5 text-slate-400 hover:bg-white/10'
+                          }`}
+                        >
+                          <p className={`text-xs font-bold ${isSelected ? 'text-primary' : 'text-white'}`}>
+                            {d.date_formatted}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5 justify-center">
+                            <span className="text-[10px]">{d.total} mac</span>
+                            {d.success_rate !== null && (
+                              <span className={`text-[10px] font-bold ${
+                                d.success_rate >= 70 ? 'text-green-400' :
+                                d.success_rate >= 50 ? 'text-aged-gold' : 'text-red-400'
+                              }`}>%{d.success_rate}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Desktop: Vertical list */}
+                  <div className="hidden lg:block max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar">
                     {dates.map((d) => {
                       const isSelected = selectedDate === d.date;
                       const dayName = getDayName(d.date);
@@ -330,23 +364,39 @@ export default function HistoricalDataScreen() {
                       <div className="bg-card-dark p-4 rounded-xl border border-white/5">
                         <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">TOPLAM</p>
                         <p className="text-2xl font-western text-white">{dateDetail.stats.total}</p>
+                        <p className="text-[10px] text-slate-600 mt-0.5">
+                          {dateDetail.stats.pending > 0 ? `${dateDetail.stats.pending} beklemede` : 'tumu degerlendirildi'}
+                        </p>
                       </div>
-                      <div className="bg-card-dark p-4 rounded-xl border border-green-500/10">
+                      <div className="bg-green-500/5 p-4 rounded-xl border border-green-500/15">
                         <p className="text-[10px] text-green-400 uppercase tracking-wider font-bold mb-1">TUTTU</p>
                         <p className="text-2xl font-western text-green-400">{dateDetail.stats.won}</p>
                       </div>
-                      <div className="bg-card-dark p-4 rounded-xl border border-red-500/10">
+                      <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/15">
                         <p className="text-[10px] text-red-400 uppercase tracking-wider font-bold mb-1">YATTI</p>
                         <p className="text-2xl font-western text-red-400">{dateDetail.stats.lost}</p>
                       </div>
-                      <div className="bg-card-dark p-4 rounded-xl border border-aged-gold/10">
-                        <p className="text-[10px] text-aged-gold uppercase tracking-wider font-bold mb-1">BAŞARI</p>
-                        <p className="text-2xl font-western text-aged-gold">
+                      <div className={`p-4 rounded-xl border ${
+                        dateDetail.stats.finished > 0 && (dateDetail.stats.won / dateDetail.stats.finished) >= 0.6
+                          ? 'bg-primary/5 border-primary/15'
+                          : 'bg-card-dark border-aged-gold/10'
+                      }`}>
+                        <p className="text-[10px] text-aged-gold uppercase tracking-wider font-bold mb-1">BASARI</p>
+                        <p className={`text-2xl font-western ${
+                          dateDetail.stats.finished > 0 && (dateDetail.stats.won / dateDetail.stats.finished) >= 0.6
+                            ? 'text-primary'
+                            : 'text-aged-gold'
+                        }`}>
                           {dateDetail.stats.finished > 0
                             ? `%${Math.round((dateDetail.stats.won / dateDetail.stats.finished) * 100)}`
                             : '-'
                           }
                         </p>
+                        {dateDetail.stats.finished > 0 && (
+                          <div className="mt-1.5 h-1 bg-white/5 rounded-full overflow-hidden flex">
+                            <div className="bg-green-500 rounded-full" style={{ width: `${(dateDetail.stats.won / dateDetail.stats.finished) * 100}%` }} />
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -378,7 +428,7 @@ export default function HistoricalDataScreen() {
                         {dateDetail.predictions.map((pred) => (
                           <div
                             key={pred.id}
-                            className={`bg-card-dark rounded-xl border transition-all cursor-pointer hover:scale-[1.01] ${
+                            className={`bg-card-dark rounded-xl border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20 ${
                               pred.prediction_result === 'won'
                                 ? 'border-green-500/20 hover:border-green-500/40'
                                 : pred.prediction_result === 'lost'
