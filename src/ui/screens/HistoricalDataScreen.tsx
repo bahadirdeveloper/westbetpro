@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import MobileNav from '../components/MobileNav';
@@ -552,10 +553,10 @@ export default function HistoricalDataScreen() {
 
       <MobileNav activeTab="gecmis-veriler" />
 
-      {/* Prediction Detail Modal */}
-      {selectedPrediction && (
+      {/* Prediction Detail Modal - Portal to body */}
+      {selectedPrediction && typeof window !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center sm:p-4"
           onClick={() => setSelectedPrediction(null)}
         >
           <div
@@ -715,7 +716,8 @@ export default function HistoricalDataScreen() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

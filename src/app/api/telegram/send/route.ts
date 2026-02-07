@@ -82,10 +82,27 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+
+    // Direct send mode (bypass formatter)
+    if (body.message && typeof body.message === 'string') {
+      const success = await sendTelegramMessage(body.message);
+      return NextResponse.json({
+        success,
+        hasToken: !!TELEGRAM_BOT_TOKEN,
+        hasChatId: !!TELEGRAM_CHAT_ID,
+        message: success ? 'Sent' : 'Failed to send - check env vars'
+      });
+    }
+
     const message = formatAlertMessage(body);
     const success = await sendTelegramMessage(message);
 
-    return NextResponse.json({ success, message: success ? 'Sent' : 'Failed to send' });
+    return NextResponse.json({
+      success,
+      hasToken: !!TELEGRAM_BOT_TOKEN,
+      hasChatId: !!TELEGRAM_CHAT_ID,
+      message: success ? 'Sent' : 'Failed to send'
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

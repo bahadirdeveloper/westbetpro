@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import MobileNav from '../components/MobileNav';
@@ -602,7 +603,8 @@ export default function DashboardScreen() {
                 return (
                   <div
                     key={index}
-                    className={`bg-card-dark p-4 sm:p-5 rounded-2xl border ${
+                    onClick={() => setSelectedOpportunity(opp)}
+                    className={`bg-card-dark p-4 sm:p-5 rounded-2xl border cursor-pointer ${
                       opp.is_live ? 'border-green-500/30' :
                       opp.is_finished && opp.prediction_result === true ? 'border-green-500/20' :
                       opp.is_finished && opp.prediction_result === false ? 'border-red-500/20' :
@@ -760,10 +762,10 @@ export default function DashboardScreen() {
 
       <MobileNav activeTab="panel" />
 
-      {/* Details Modal */}
-      {selectedOpportunity && (
+      {/* Details Modal - Portal to body for z-index safety */}
+      {selectedOpportunity && typeof window !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center sm:p-4"
           onClick={() => setSelectedOpportunity(null)}
         >
           <div
@@ -907,7 +909,8 @@ export default function DashboardScreen() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
