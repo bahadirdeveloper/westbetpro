@@ -162,9 +162,11 @@ async function handleIstatistik(chatId: string | number) {
   const today = getTodayDate();
   const yesterday = getYesterdayDate();
 
-  const [todayPreds, yesterdayPreds] = await Promise.all([
+  // Fetch all predictions for comprehensive stats
+  const [todayPreds, yesterdayPreds, allData] = await Promise.all([
     supabaseSelect('predictions', `match_date=eq.${today}&select=*`),
     supabaseSelect('predictions', `match_date=eq.${yesterday}&select=*`),
+    supabaseSelect('predictions', `select=match_date,league,prediction,confidence,prediction_result,is_finished&order=match_date.desc`),
   ]);
 
   let msg = `📊 <b>ISTATISTIKLER</b>\n\n`;
@@ -200,15 +202,64 @@ async function handleIstatistik(chatId: string | number) {
     msg += `\n`;
   }
 
-  // Genel (son 7 gun)
-  const allPreds = [...(todayPreds || []), ...(yesterdayPreds || [])];
-  const allFinished = allPreds.filter((p: any) => p.is_finished);
-  const allWon = allFinished.filter((p: any) => toBooleanResult(p.prediction_result) === true).length;
-  const allRate = allFinished.length > 0 ? Math.round((allWon / allFinished.length) * 100) : 0;
+  // Genel istatistikler
+  if (allData && allData.length > 0) {
+    const finished = allData.filter((p: any) => p.is_finished);
+    const won = finished.filter((p: any) => toBooleanResult(p.prediction_result) === true).length;
+    const lost = finished.filter((p: any) => toBooleanResult(p.prediction_result) === false).length;
+    const totalRate = finished.length > 0 ? Math.round((won / finished.length) * 100) : 0;
+    const uniqueDays = new Set(allData.map((p: any) => p.match_date)).size;
 
-  if (allFinished.length > 0) {
-    msg += `📈 <b>Son 2 Gun Toplam:</b>\n`;
-    msg += `   ${allFinished.length} biten mac | ✅ ${allWon} tuttu | %${allRate} basari\n`;
+    msg += `📈 <b>GENEL OZET:</b>\n`;
+    msg += `   ${allData.length} tahmin | ${uniqueDays} gun\n`;
+    msg += `   ✅ ${won} tuttu | ❌ ${lost} yatti\n`;
+    msg += `   📊 Genel basari: %${totalRate}\n\n`;
+
+    // Top 3 leagues
+    const leagueMap: Record<string, { won: number; total: number }> = {};
+    for (const p of finished) {
+      const league = p.league || 'Bilinmeyen';
+      if (!leagueMap[league]) leagueMap[league] = { won: 0, total: 0 };
+      leagueMap[league].total++;
+      if (toBooleanResult(p.prediction_result) === true) leagueMap[league].won++;
+    }
+    const topLeagues = Object.entries(leagueMap)
+      .filter(([, s]) => s.total >= 3)
+      .map(([league, s]) => ({ league, ...s, rate: Math.round((s.won / s.total) * 100) }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 3);
+
+    if (topLeagues.length > 0) {
+      msg += `🏆 <b>EN BASARILI LIGLER:</b>\n`;
+      for (const l of topLeagues) {
+        msg += `   %${l.rate} - ${l.league} (${l.won}/${l.total})\n`;
+      }
+      msg += `\n`;
+    }
+
+    // Prediction type breakdown
+    const typeMap: Record<string, { won: number; total: number }> = {};
+    for (const p of finished) {
+      const pred = (p.prediction || '').toUpperCase().trim();
+      let type = 'Diger';
+      if (pred.includes('UST') || pred.includes('ALT')) type = 'Ust/Alt';
+      else if (pred.includes('KG')) type = 'KG';
+      else if (pred.startsWith('MS ')) type = 'Mac Sonucu';
+      else if (pred.startsWith('IY ')) type = 'Ilk Yari';
+      if (!typeMap[type]) typeMap[type] = { won: 0, total: 0 };
+      typeMap[type].total++;
+      if (toBooleanResult(p.prediction_result) === true) typeMap[type].won++;
+    }
+    const typeStats = Object.entries(typeMap)
+      .map(([type, s]) => ({ type, ...s, rate: Math.round((s.won / s.total) * 100) }))
+      .sort((a, b) => b.total - a.total);
+
+    if (typeStats.length > 0) {
+      msg += `🎯 <b>TAHMIN TIPI:</b>\n`;
+      for (const t of typeStats) {
+        msg += `   ${t.type}: %${t.rate} (${t.won}/${t.total})\n`;
+      }
+    }
   }
 
   return reply(chatId, msg);

@@ -19,6 +19,36 @@ interface DateSummary {
   success_rate: number | null;
 }
 
+interface StatItem {
+  total: number;
+  won: number;
+  lost: number;
+  rate: number;
+}
+
+interface LeagueStat extends StatItem { league: string; }
+interface TypeStat extends StatItem { type: string; }
+interface ConfStat extends StatItem { range: string; }
+interface TrendItem extends StatItem { date: string; date_formatted: string; }
+interface RuleStat extends StatItem { rule_id: string; name: string; }
+
+interface AllStats {
+  overall: {
+    total_predictions: number;
+    finished: number;
+    won: number;
+    lost: number;
+    pending: number;
+    overall_rate: number;
+    total_days: number;
+  };
+  by_league: LeagueStat[];
+  by_type: TypeStat[];
+  by_confidence: ConfStat[];
+  daily_trend: TrendItem[];
+  by_rule: RuleStat[];
+}
+
 interface Prediction {
   id: string;
   home_team: string;
@@ -87,6 +117,9 @@ export default function HistoricalDataScreen() {
   const [loadingDates, setLoadingDates] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
+  const [activeTab, setActiveTab] = useState<'arsiv' | 'istatistik'>('arsiv');
+  const [allStats, setAllStats] = useState<AllStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -108,7 +141,6 @@ export default function HistoricalDataScreen() {
         const data = await res.json();
         if (data.success) {
           setDates(data.dates || []);
-          // Auto-select the most recent past date (not today, not future)
           const pastDates = (data.dates || []).filter((d: DateSummary) => !d.is_future);
           if (pastDates.length > 0) {
             setSelectedDate(pastDates[0].date);
@@ -122,6 +154,27 @@ export default function HistoricalDataScreen() {
     }
     fetchDates();
   }, []);
+
+  // Fetch stats when stats tab is activated
+  useEffect(() => {
+    if (activeTab !== 'istatistik' || allStats) return;
+    async function fetchStats() {
+      try {
+        setLoadingStats(true);
+        const res = await fetch('/api/history?stats=all', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`API hatasi: ${res.status}`);
+        const data = await res.json();
+        if (data.success && data.stats) {
+          setAllStats(data.stats);
+        }
+      } catch (e) {
+        console.error('Failed to fetch stats:', e);
+      } finally {
+        setLoadingStats(false);
+      }
+    }
+    fetchStats();
+  }, [activeTab, allStats]);
 
   // Fetch predictions when date is selected
   useEffect(() => {
@@ -216,8 +269,251 @@ export default function HistoricalDataScreen() {
             </p>
           </div>
 
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 bg-card-dark rounded-xl p-1 border border-white/5 w-fit">
+            <button
+              onClick={() => setActiveTab('arsiv')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'arsiv'
+                  ? 'bg-primary/15 text-primary border border-primary/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              <span className="material-icons-round text-sm mr-1.5 align-middle">history</span>
+              Arsiv
+            </button>
+            <button
+              onClick={() => setActiveTab('istatistik')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'istatistik'
+                  ? 'bg-primary/15 text-primary border border-primary/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              <span className="material-icons-round text-sm mr-1.5 align-middle">analytics</span>
+              Istatistikler
+            </button>
+          </div>
+
+          {/* ========== STATISTICS TAB ========== */}
+          {activeTab === 'istatistik' && (
+            <div>
+              {loadingStats && (
+                <div className="flex justify-center items-center py-20">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+                    <p className="text-slate-400">Istatistikler hesaplaniyor...</p>
+                  </div>
+                </div>
+              )}
+
+              {!loadingStats && !allStats && (
+                <div className="text-center py-16">
+                  <span className="text-5xl mb-4 block">📊</span>
+                  <p className="text-slate-400">Henuz yeterli veri yok.</p>
+                </div>
+              )}
+
+              {!loadingStats && allStats && (
+                <div className="space-y-6">
+                  {/* Overall Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-card-dark p-4 rounded-xl border border-white/5">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">TOPLAM TAHMIN</p>
+                      <p className="text-2xl font-western text-white">{allStats.overall.total_predictions}</p>
+                      <p className="text-[10px] text-slate-600 mt-0.5">{allStats.overall.total_days} gun</p>
+                    </div>
+                    <div className="bg-green-500/5 p-4 rounded-xl border border-green-500/15">
+                      <p className="text-[10px] text-green-400 uppercase tracking-wider font-bold mb-1">TUTTU</p>
+                      <p className="text-2xl font-western text-green-400">{allStats.overall.won}</p>
+                      <p className="text-[10px] text-slate-600 mt-0.5">{allStats.overall.finished} bitten</p>
+                    </div>
+                    <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/15">
+                      <p className="text-[10px] text-red-400 uppercase tracking-wider font-bold mb-1">YATTI</p>
+                      <p className="text-2xl font-western text-red-400">{allStats.overall.lost}</p>
+                    </div>
+                    <div className={`p-4 rounded-xl border ${
+                      allStats.overall.overall_rate >= 60
+                        ? 'bg-primary/5 border-primary/15'
+                        : 'bg-card-dark border-aged-gold/10'
+                    }`}>
+                      <p className="text-[10px] text-aged-gold uppercase tracking-wider font-bold mb-1">GENEL BASARI</p>
+                      <p className={`text-2xl font-western ${
+                        allStats.overall.overall_rate >= 60 ? 'text-primary' : 'text-aged-gold'
+                      }`}>%{allStats.overall.overall_rate}</p>
+                      <div className="mt-1.5 h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="bg-green-500 rounded-full h-full" style={{ width: `${allStats.overall.overall_rate}%` }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Daily Trend */}
+                  {allStats.daily_trend.length > 1 && (
+                    <div className="bg-card-dark rounded-xl border border-white/5 p-4 sm:p-5">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="material-icons-round text-aged-gold text-base">trending_up</span>
+                        Gunluk Trend
+                      </h3>
+                      {/* Bar chart */}
+                      <div className="flex items-end gap-1 h-32 sm:h-40">
+                        {allStats.daily_trend.map((d) => {
+                          const maxTotal = Math.max(...allStats.daily_trend.map(t => t.total));
+                          const barHeight = maxTotal > 0 ? (d.total / maxTotal) * 100 : 0;
+                          const wonHeight = d.total > 0 ? (d.won / d.total) * barHeight : 0;
+                          return (
+                            <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group relative">
+                              {/* Tooltip */}
+                              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/90 border border-white/10 rounded-lg px-2 py-1 text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                {d.date_formatted}: {d.won}/{d.total} (%{d.rate})
+                              </div>
+                              {/* Bar */}
+                              <div className="w-full flex flex-col justify-end" style={{ height: `${barHeight}%`, minHeight: '4px' }}>
+                                <div className="w-full bg-green-500/80 rounded-t" style={{ height: `${wonHeight}%`, minHeight: d.won > 0 ? '2px' : '0' }} />
+                                <div className="w-full bg-red-500/50 rounded-b" style={{ height: `${barHeight - wonHeight}%`, minHeight: d.lost > 0 ? '2px' : '0' }} />
+                              </div>
+                              {/* Label */}
+                              <p className="text-[8px] text-slate-600 truncate w-full text-center">
+                                {d.date.slice(5)}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center gap-4 mt-3 text-[10px] text-slate-500">
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500/80"></span> Tuttu</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500/50"></span> Yatti</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Two column layout for smaller stats */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* League Stats */}
+                    <div className="bg-card-dark rounded-xl border border-white/5 p-4 sm:p-5">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="material-icons-round text-aged-gold text-base">emoji_events</span>
+                        Lig Bazli Basari
+                      </h3>
+                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                        {allStats.by_league.slice(0, 15).map((l) => (
+                          <div key={l.league} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white truncate">{l.league}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden flex">
+                                  <div className="bg-green-500 rounded-l-full h-full" style={{ width: `${l.rate}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className={`text-sm font-bold ${
+                                l.rate >= 70 ? 'text-green-400' : l.rate >= 50 ? 'text-aged-gold' : 'text-red-400'
+                              }`}>%{l.rate}</p>
+                              <p className="text-[10px] text-slate-600">{l.won}/{l.total}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Prediction Type Stats */}
+                    <div className="bg-card-dark rounded-xl border border-white/5 p-4 sm:p-5">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="material-icons-round text-aged-gold text-base">category</span>
+                        Tahmin Tipi Bazli
+                      </h3>
+                      <div className="space-y-2">
+                        {allStats.by_type.map((t) => (
+                          <div key={t.type} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white">{t.type}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden flex">
+                                  <div className="bg-green-500 rounded-l-full h-full" style={{ width: `${t.rate}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className={`text-sm font-bold ${
+                                t.rate >= 70 ? 'text-green-400' : t.rate >= 50 ? 'text-aged-gold' : 'text-red-400'
+                              }`}>%{t.rate}</p>
+                              <p className="text-[10px] text-slate-600">{t.won}/{t.total}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Confidence Range Stats */}
+                    <div className="bg-card-dark rounded-xl border border-white/5 p-4 sm:p-5">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="material-icons-round text-aged-gold text-base">speed</span>
+                        Guven Araligi Analizi
+                      </h3>
+                      <div className="space-y-2">
+                        {allStats.by_confidence.map((c) => (
+                          <div key={c.range} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white font-mono">{c.range}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden flex">
+                                  <div className="bg-green-500 rounded-l-full h-full" style={{ width: `${c.rate}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className={`text-sm font-bold ${
+                                c.rate >= 70 ? 'text-green-400' : c.rate >= 50 ? 'text-aged-gold' : 'text-red-400'
+                              }`}>%{c.rate}</p>
+                              <p className="text-[10px] text-slate-600">{c.won}/{c.total}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Rule Stats */}
+                    {allStats.by_rule.length > 0 && (
+                      <div className="bg-card-dark rounded-xl border border-white/5 p-4 sm:p-5">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                          <span className="material-icons-round text-aged-gold text-base">rule</span>
+                          Kural Performansi
+                        </h3>
+                        <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                          {allStats.by_rule.slice(0, 15).map((r) => (
+                            <div key={r.rule_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                              <span className="text-[10px] px-1.5 py-0.5 bg-saddle-brown/20 text-saddle-brown rounded font-bold flex-shrink-0">
+                                #{r.rule_id}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-white truncate">{r.name}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden flex">
+                                    <div className="bg-green-500 rounded-l-full h-full" style={{ width: `${r.rate}%` }} />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className={`text-sm font-bold ${
+                                  r.rate >= 70 ? 'text-green-400' : r.rate >= 50 ? 'text-aged-gold' : 'text-red-400'
+                                }`}>%{r.rate}</p>
+                                <p className="text-[10px] text-slate-600">{r.won}/{r.total}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========== ARCHIVE TAB ========== */}
+
           {/* Loading State */}
-          {loadingDates && (
+          {activeTab === 'arsiv' && loadingDates && (
             <div className="flex justify-center items-center py-20">
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
@@ -227,7 +523,7 @@ export default function HistoricalDataScreen() {
           )}
 
           {/* Main Content */}
-          {!loadingDates && dates.length === 0 && (
+          {activeTab === 'arsiv' && !loadingDates && dates.length === 0 && (
             <div className="flex flex-col items-center justify-center py-24">
               <div className="bg-card-dark border border-aged-gold/20 rounded-2xl p-12 text-center max-w-lg">
                 <span className="material-icons-round text-6xl text-aged-gold/40 mb-6 block">history</span>
@@ -239,7 +535,7 @@ export default function HistoricalDataScreen() {
             </div>
           )}
 
-          {!loadingDates && dates.length > 0 && (
+          {activeTab === 'arsiv' && !loadingDates && dates.length > 0 && (
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Date Selector - Left Panel (horizontal on mobile, sidebar on desktop) */}
               <div className="lg:w-72 xl:w-80 flex-shrink-0">
