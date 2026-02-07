@@ -543,10 +543,12 @@ export default function DashboardScreen() {
                     </h3>
                     <p className="text-xs text-slate-400">
                       %{success.rate.toFixed(0)} basari
-                      {success.totalPredFinished > 0 && (
-                        <span> · {success.totalPredWon}/{success.totalPredFinished} tahmin tuttu</span>
-                      )}
                     </p>
+                    {success.totalPredFinished > 0 && (
+                      <p className="text-xs text-primary mt-1 font-bold">
+                        {success.totalPredWon}/{success.totalPredFinished} tahmin tuttu
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div>
@@ -690,14 +692,29 @@ export default function DashboardScreen() {
                       ) : null;
                     })()}
 
-                    {/* Prediction Count Badge */}
-                    <div className="flex items-center gap-2 mb-3">
+                    {/* Prediction Count Badge + Results Summary */}
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${confidenceColor} bg-white/5`}>
                         {totalPredCount} TAHMiN
                       </span>
-                      <span className="text-[10px] text-slate-500">
-                        {opp.matched_rules?.length || 0} kural eslesti
-                      </span>
+                      {(() => {
+                        if (!opp.is_finished) return (
+                          <span className="text-[10px] text-slate-500">
+                            {opp.matched_rules?.length || 0} kural eslesti
+                          </span>
+                        );
+                        const won = allPreds.filter(p => p.sonuç === true).length;
+                        const evaluated = allPreds.filter(p => p.sonuç === true || p.sonuç === false).length;
+                        if (evaluated === 0) return (
+                          <span className="text-[10px] text-slate-500">sonuc hesaplaniyor...</span>
+                        );
+                        const allWon = won === evaluated;
+                        return (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${allWon ? 'text-green-400 bg-green-500/10' : 'text-aged-gold bg-aged-gold/10'}`}>
+                            {won}/{evaluated} TUTTU
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* ALL Predictions List */}
