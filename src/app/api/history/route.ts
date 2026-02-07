@@ -4,50 +4,20 @@
  * Endpoints:
  * - GET /api/history          → Returns all available dates with prediction counts & stats
  * - GET /api/history?date=YYYY-MM-DD → Returns predictions for a specific date
- *
- * Uses direct REST API for reads to avoid Supabase JS client caching issues.
  */
 
 import { NextResponse } from 'next/server';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-async function supabaseSelect(params: string): Promise<any[]> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/predictions?${params}`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    },
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-function formatDateTurkish(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-');
-  return `${day}.${month}.${year}`;
-}
-
-function getTodayIstanbul(): string {
-  const now = new Date();
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-  const istanbulTime = new Date(utcTime + 3 * 3600000);
-  return istanbulTime.toISOString().split('T')[0];
-}
+import { supabaseSelect } from '@/lib/supabase';
+import { formatDateTurkish, getTodayDate } from '@/lib/dates';
 
 export async function GET(request: Request) {
   try {
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      return NextResponse.json({ success: false, message: 'Veritabanı bağlantısı yok' }, { status: 500 });
-    }
-
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 
     if (date) {
       const data = await supabaseSelect(
+        'predictions',
         `match_date=eq.${date}&order=match_time.asc,confidence.desc&select=*`
       );
 
@@ -84,8 +54,8 @@ export async function GET(request: Request) {
 
       const total = predictions.length;
       const finished = predictions.filter((p: any) => p.is_finished).length;
-      const won = predictions.filter((p: any) => p.prediction_result === 'won').length;
-      const lost = predictions.filter((p: any) => p.prediction_result === 'lost').length;
+      const won = predictions.filter((p: any) => p.prediction_result === 'won' || p.prediction_result === 'true' || p.prediction_result === true).length;
+      const lost = predictions.filter((p: any) => p.prediction_result === 'lost' || p.prediction_result === 'false' || p.prediction_result === false).length;
       const live = predictions.filter((p: any) => p.is_live).length;
       const pending = total - finished - live;
 
@@ -100,6 +70,7 @@ export async function GET(request: Request) {
 
     // No date: return summary of all dates
     const data = await supabaseSelect(
+      'predictions',
       'select=match_date,is_finished,is_live,prediction_result&order=match_date.desc'
     );
 
@@ -111,12 +82,12 @@ export async function GET(request: Request) {
       }
       dateMap[d].total++;
       if (pred.is_finished) dateMap[d].finished++;
-      if (pred.prediction_result === 'won') dateMap[d].won++;
-      if (pred.prediction_result === 'lost') dateMap[d].lost++;
+      if (pred.prediction_result === 'won' || pred.prediction_result === 'true' || pred.prediction_result === true) dateMap[d].won++;
+      if (pred.prediction_result === 'lost' || pred.prediction_result === 'false' || pred.prediction_result === false) dateMap[d].lost++;
       if (pred.is_live) dateMap[d].live++;
     }
 
-    const today = getTodayIstanbul();
+    const today = getTodayDate();
     const dates = Object.entries(dateMap)
       .map(([date, stats]) => ({
         date,

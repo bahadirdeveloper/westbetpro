@@ -84,4 +84,126 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* === Western Saloon Scoreboard === */
+  .wood-texture {
+    background:
+      linear-gradient(135deg, rgba(139, 69, 19, 0.12) 25%, transparent 25%),
+      linear-gradient(225deg, rgba(139, 69, 19, 0.08) 25%, transparent 25%),
+      linear-gradient(315deg, rgba(139, 69, 19, 0.12) 25%, transparent 25%),
+      linear-gradient(45deg, rgba(139, 69, 19, 0.08) 25%, transparent 25%);
+    background-size: 40px 40px;
+    background-color: #141815;
+  }
+
+  .saloon-border {
+    border: 2px solid rgba(197, 160, 89, 0.25);
+    box-shadow:
+      inset 0 0 12px rgba(139, 69, 19, 0.15),
+      0 0 20px rgba(197, 160, 89, 0.05);
+  }
+
+  .saloon-border::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border: 1px solid rgba(197, 160, 89, 0.08);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .saloon-nail {
+    position: relative;
+  }
+  .saloon-nail::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #C5A059, #8B4513);
+    box-shadow: 0 0 3px rgba(197, 160, 89, 0.3);
+    z-index: 1;
+  }
+
+  /* Animated counter */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .count-up {
+    animation: countUp 0.5s ease-out;
+  }
+
+  /* === Live Alert Animations === */
+  @keyframes alertPulse {
+    0%, 100% { border-color: rgba(197, 160, 89, 0.4); box-shadow: 0 0 15px rgba(197, 160, 89, 0.1); }
+    50% { border-color: rgba(0, 255, 102, 0.7); box-shadow: 0 0 25px rgba(0, 255, 102, 0.15); }
+  }
+
+  @keyframes hotAlert {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.01); }
+  }
+
+  .alert-hot {
+    animation: alertPulse 2s ease-in-out infinite, hotAlert 3s ease-in-out infinite;
+    border: 2px solid rgba(0, 255, 102, 0.4);
+  }
+
+  .alert-warm {
+    animation: alertPulse 3.5s ease-in-out infinite;
+    border: 2px solid rgba(197, 160, 89, 0.3);
+  }
+
+  @keyframes slideInRight {
+    from { transform: translateX(80px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .alert-enter {
+    animation: slideInRight 0.4s ease-out;
+  }
+
+  @keyframes goalFlash {
+    0% { background-color: rgba(0, 255, 102, 0.2); }
+    50% { background-color: rgba(0, 255, 102, 0.05); }
+    100% { background-color: transparent; }
+  }
+  .goal-flash {
+    animation: goalFlash 1.5s ease-out;
+  }
+
+  /* === Page Transitions === */
+  .page-transition {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .page-enter {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  .page-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @keyframes westernLoad {
+    0% { width: 0; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+  }
+  .western-loading-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #8B4513, #C5A059, #00FF66, #C5A059, #8B4513);
+    background-size: 200% 100%;
+    z-index: 9999;
+    animation: westernLoad 0.6s ease-out forwards;
+  }
 }

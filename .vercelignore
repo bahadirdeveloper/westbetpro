@@ -1,2 +1,7 @@
 backend/
 __pycache__/
+data/
+database/
+docs/
+*.md
+!README.md

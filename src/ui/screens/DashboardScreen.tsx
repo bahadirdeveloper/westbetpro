@@ -22,6 +22,7 @@ import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import MobileNav from '../components/MobileNav';
+import WesternScoreboard from '../components/WesternScoreboard';
 
 // Opportunity type (matches backend JSON keys)
 interface Opportunity {
@@ -131,46 +132,20 @@ export default function DashboardScreen() {
       }
     }
 
-    // Trigger live score cron, wait for DB write, then fetch fresh data
-    async function triggerAndRefresh() {
-      try {
-        // Call cron and wait for full completion
-        const cronRes = await fetch(`/api/cron/live-scores?t=${Date.now()}`, {
-          cache: 'no-store'
-        });
-        if (cronRes.ok) {
-          const cronData = await cronRes.json();
-          console.log('[LiveScore] Cron result:', cronData.matched, 'matched,', cronData.updated, 'updated');
-        }
-        // Wait 1.5s for Supabase REST writes to propagate
-        await new Promise(r => setTimeout(r, 1500));
-      } catch (e) {
-        console.error('[LiveScore] Cron trigger failed:', e);
-      }
-      if (isMounted) await fetchOpportunities();
-    }
-
-    // For "today" we trigger cron + polling; for other dates just fetch data once
+    // For "today" we poll Supabase for fresh data; cron runs server-side via Vercel
     const isToday = selectedDate === 'today';
 
     if (isToday) {
-      // Initial: trigger cron first, then load data
-      triggerAndRefresh();
+      fetchOpportunities();
 
-      // UI data refresh every 15 seconds
+      // Poll Supabase every 15 seconds for fresh data (no API-Football cost)
       const uiInterval = setInterval(() => {
         if (isMounted) fetchOpportunities();
       }, 15000);
 
-      // Live score cron every 60 seconds (calls API-Football + updates Supabase)
-      const cronInterval = setInterval(() => {
-        if (isMounted) triggerAndRefresh();
-      }, 60000);
-
       return () => {
         isMounted = false;
         clearInterval(uiInterval);
-        clearInterval(cronInterval);
       };
     } else {
       // For yesterday/tomorrow/day_after_tomorrow: just fetch once, no polling
@@ -502,102 +477,72 @@ export default function DashboardScreen() {
             </div>
           </div>
 
-          {/* Stats Cards - Aggregate stats (can be updated later) */}
+          {/* Western Saloon Scoreboards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-10">
-            <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
-              <div className="flex justify-between items-start mb-3 sm:mb-4">
-                <span className="p-2.5 sm:p-3 rounded-xl bg-primary/10 text-primary">
-                  <span className="material-icons-round text-xl sm:text-2xl">trending_up</span>
-                </span>
-                <span className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase">
-                  CANLI
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs sm:text-sm mb-1 uppercase tracking-wider font-bold">
-                Firsat Mac Sayisi
-              </p>
-              <h3 className="text-2xl sm:text-3xl font-western text-white">{opportunities.length}</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Toplam {getTotalPredictionCount()} tahmin
-              </p>
-            </div>
+            <WesternScoreboard
+              title="Firsat Mac Sayisi"
+              value={opportunities.length}
+              subtitle={`Toplam ${getTotalPredictionCount()} tahmin`}
+              accentColor="primary"
+              icon="trending_up"
+              badge="CANLI"
+            />
 
-            <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-aged-gold/20 transition-all group">
-              <div className="flex justify-between items-start mb-3 sm:mb-4">
-                <span className="p-2.5 sm:p-3 rounded-xl bg-aged-gold/10 text-aged-gold">
-                  <span className="material-icons-round text-xl sm:text-2xl">analytics</span>
-                </span>
-                <span className="text-[10px] font-bold text-aged-gold px-2 py-1 bg-aged-gold/10 rounded uppercase">
-                  SONUCLAR
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs sm:text-sm mb-1 uppercase tracking-wider font-bold">
-                {selectedDate === 'yesterday' ? 'Dunun Basarisi' : selectedDate === 'today' ? 'Bugunun Basarisi' : 'Basari Durumu'}
-              </p>
-              {(() => {
-                const success = getDailySuccessRate();
-                return success.finished > 0 ? (
-                  <div>
-                    <h3 className="text-2xl sm:text-3xl font-western text-white mb-1">
-                      {success.won}/{success.finished} Mac
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      %{success.rate.toFixed(0)} basari
-                    </p>
-                    {success.totalPredFinished > 0 && (
-                      <p className="text-xs text-primary mt-1 font-bold">
-                        {success.totalPredWon}/{success.totalPredFinished} tahmin tuttu
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <h3 className="text-2xl sm:text-3xl font-western text-white mb-1">
-                      0 / {success.total}
-                    </h3>
-                    <p className="text-xs text-slate-400">Henuz mac bitmedi · {success.totalPreds} tahmin</p>
-                  </div>
+            {(() => {
+              const success = getDailySuccessRate();
+              const dateLabel = selectedDate === 'yesterday' ? 'Dunun Basarisi' : selectedDate === 'today' ? 'Bugunun Basarisi' : 'Basari Durumu';
+              if (success.finished > 0) {
+                return (
+                  <WesternScoreboard
+                    title={dateLabel}
+                    value={`${success.won}/${success.finished} Mac`}
+                    subtitle={`%${success.rate.toFixed(0)} basari`}
+                    secondLine={success.totalPredFinished > 0 ? `${success.totalPredWon}/${success.totalPredFinished} tahmin tuttu` : undefined}
+                    accentColor="aged-gold"
+                    icon="analytics"
+                    badge="SONUCLAR"
+                  />
                 );
-              })()}
-            </div>
+              }
+              return (
+                <WesternScoreboard
+                  title={dateLabel}
+                  value="—"
+                  subtitle="Henuz sonuclanan mac yok"
+                  secondLine={`${success.total} mac · ${success.totalPreds} tahmin bekleniyor`}
+                  accentColor="aged-gold"
+                  icon="analytics"
+                  badge="SONUCLAR"
+                />
+              );
+            })()}
 
-            <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-saddle-brown/20 transition-all group sm:col-span-2 md:col-span-1">
-              <div className="flex justify-between items-start mb-3 sm:mb-4">
-                <span className="p-2.5 sm:p-3 rounded-xl bg-saddle-brown/10 text-saddle-brown">
-                  <span className="material-icons-round text-xl sm:text-2xl">schedule</span>
-                </span>
-                <span className="text-[10px] font-bold text-saddle-brown px-2 py-1 bg-saddle-brown/10 rounded uppercase">
-                  YAKLASAN
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs sm:text-sm mb-1 uppercase tracking-wider font-bold">
-                Siradaki Mac
-              </p>
-              {(() => {
-                const next = getNextMatch();
-                if (next) {
-                  return (
-                    <div>
-                      <h3 className="text-2xl font-western text-white mb-1">
-                        {next.label}
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        {next.match['Ev Sahibi']} vs {next.match.Deplasman}
-                      </p>
-                    </div>
-                  );
-                }
-                const allFinished = opportunities.length > 0 && opportunities.every(o => o.is_finished);
-                return allFinished ? (
-                  <div>
-                    <h3 className="text-2xl font-western text-white mb-1">Tamamlandı</h3>
-                    <p className="text-xs text-slate-400">Tüm maçlar bitti</p>
-                  </div>
-                ) : (
-                  <h3 className="text-2xl font-western text-white">-</h3>
+            {(() => {
+              const next = getNextMatch();
+              if (next) {
+                return (
+                  <WesternScoreboard
+                    title="Siradaki Mac"
+                    value={next.label}
+                    subtitle={`${next.match['Ev Sahibi']} vs ${next.match.Deplasman}`}
+                    accentColor="saddle-brown"
+                    icon="schedule"
+                    badge="YAKLASAN"
+                  />
                 );
-              })()}
-            </div>
+              }
+              const allFinished = opportunities.length > 0 && opportunities.every(o => o.is_finished);
+              return (
+                <WesternScoreboard
+                  title="Siradaki Mac"
+                  value={allFinished ? 'Tamamlandi' : '—'}
+                  subtitle={allFinished ? 'Tum maclar bitti' : undefined}
+                  accentColor="saddle-brown"
+                  icon="schedule"
+                  badge="YAKLASAN"
+                />
+              );
+            })()}
           </div>
 
           {/* Loading State */}

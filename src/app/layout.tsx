@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import NavigationLoader from '@/ui/components/NavigationLoader'
+import PageTransition from '@/ui/components/PageTransition'
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#1a1a2e',
+  themeColor: '#0A0D0B',
 }
 
 export const metadata: Metadata = {
@@ -13,8 +15,8 @@ export const metadata: Metadata = {
     default: 'West Analyze - AI Destekli Bahis Analiz Platformu',
     template: '%s | West Analyze',
   },
-  description: 'Yapay zeka destekli profesyonel bahis analiz platformu. Altın kurallar, canlı skor takibi ve yüksek güvenilirlikli tahminler.',
-  keywords: ['bahis analiz', 'AI tahmin', 'maç analizi', 'canlı skor', 'bahis tahmin', 'west analyze'],
+  description: 'Yapay zeka destekli profesyonel bahis analiz platformu. Altin kurallar, canli skor takibi ve yuksek guvenilirlikli tahminler.',
+  keywords: ['bahis analiz', 'AI tahmin', 'mac analizi', 'canli skor', 'bahis tahmin', 'west analyze'],
   authors: [{ name: 'WestBetPro' }],
   creator: 'WestBetPro',
   robots: {
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
     url: 'https://westbetpro.vercel.app',
     siteName: 'West Analyze',
     title: 'West Analyze - AI Destekli Bahis Analiz Platformu',
-    description: 'Yapay zeka destekli profesyonel bahis analiz platformu. Altın kurallar ve yüksek güvenilirlikli tahminler.',
+    description: 'Yapay zeka destekli profesyonel bahis analiz platformu. Altin kurallar ve yuksek guvenilirlikli tahminler.',
   },
   twitter: {
     card: 'summary_large_image',
@@ -39,6 +41,11 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'West Analyze',
+  },
 }
 
 export default function RootLayout({
@@ -61,8 +68,28 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="overflow-x-hidden">{children}</body>
+      <body className="overflow-x-hidden">
+        <NavigationLoader />
+        <PageTransition>
+          {children}
+        </PageTransition>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(reg) { console.log('SW registered:', reg.scope); })
+                    .catch(function(err) { console.warn('SW failed:', err); });
+                });
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   )
 }
