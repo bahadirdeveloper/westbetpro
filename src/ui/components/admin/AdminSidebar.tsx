@@ -10,6 +10,7 @@ export default function AdminSidebar() {
     { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
     { id: 'excel-upload', icon: 'upload_file', label: 'Excel Yükle', href: '/admin/excel-upload' },
     { id: 'engine', icon: 'settings', label: 'Motor Kontrolü', href: '/admin/engine' },
+    { id: 'rule-discovery', icon: 'psychology', label: 'Kural Keşfi', href: '/admin/rule-discovery' },
     { id: 'matches', icon: 'sports_soccer', label: 'Maçlar', href: '/admin/matches' },
     { id: 'predictions', icon: 'analytics', label: 'Tahminler', href: '/admin/predictions' },
     { id: 'rules', icon: 'rule', label: 'Kural Performansı', href: '/admin/rules' },

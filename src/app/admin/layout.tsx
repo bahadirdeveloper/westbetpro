@@ -96,6 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
     { id: 'excel-upload', icon: 'upload_file', label: 'Excel Yükle', href: '/admin/excel-upload' },
     { id: 'rules', icon: 'rule', label: 'Altin Kurallar', href: '/admin/rules' },
+    { id: 'rule-discovery', icon: 'psychology', label: 'Kural Keşfi', href: '/admin/rule-discovery' },
     { id: 'predictions', icon: 'analytics', label: 'Tahminler', href: '/admin/predictions' },
     { id: 'matches', icon: 'sports_soccer', label: 'Maclar', href: '/admin/matches' },
     { id: 'logs', icon: 'description', label: 'Loglar', href: '/admin/logs' },

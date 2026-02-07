@@ -63,6 +63,7 @@ interface Opportunity {
   'is_live'?: boolean;
   'is_finished'?: boolean;
   'prediction_result'?: boolean | null;
+  'source'?: string;
 }
 
 interface ApiResponse {
@@ -620,11 +621,20 @@ export default function DashboardScreen() {
                       </div>
                     )}
 
-                    {/* League & Status Badges */}
+                    {/* League & Status & Source Badges */}
                     <div className="flex items-center gap-2 mb-3 flex-wrap pr-12">
                       <span className="text-[10px] px-2 py-1 bg-white/5 text-slate-400 rounded-md font-bold uppercase tracking-wider">
                         {opp.Lig}
                       </span>
+                      {opp.source && (
+                        <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${
+                          opp.source === 'api-engine' ? 'bg-blue-500/10 text-blue-400' :
+                          opp.source === 'excel-upload' ? 'bg-purple-500/10 text-purple-400' :
+                          'bg-white/5 text-slate-500'
+                        }`}>
+                          {opp.source === 'api-engine' ? 'API' : opp.source === 'excel-upload' ? 'EXCEL' : 'MANUEL'}
+                        </span>
+                      )}
                       {(() => {
                         const statusBadge = getStatusBadge(opp);
                         return statusBadge ? (

@@ -281,7 +281,8 @@ export async function GET(request: Request) {
               'elapsed': pred.elapsed ?? null,
               'is_live': pred.is_live || false,
               'is_finished': isFinished,
-              'prediction_result': mainResult
+              'prediction_result': mainResult,
+              'source': pred.source || 'excel',
             };
           });
         }
