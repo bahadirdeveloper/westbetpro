@@ -8,8 +8,10 @@ import { NextResponse } from 'next/server';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
-async function sendTelegramMessage(text: string): Promise<boolean> {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return false;
+async function sendTelegramMessage(text: string): Promise<{ ok: boolean; error?: string }> {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return { ok: false, error: 'Missing env vars' };
+  }
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -21,9 +23,15 @@ async function sendTelegramMessage(text: string): Promise<boolean> {
         parse_mode: 'HTML',
       }),
     });
-    return res.ok;
-  } catch {
-    return false;
+    const body = await res.json();
+    if (!body.ok) {
+      console.error('Telegram API error:', body);
+      return { ok: false, error: body.description || 'Unknown Telegram error' };
+    }
+    return { ok: true };
+  } catch (e: any) {
+    console.error('Telegram fetch error:', e);
+    return { ok: false, error: e.message || 'Fetch failed' };
   }
 }
 
@@ -85,23 +93,25 @@ export async function POST(request: Request) {
 
     // Direct send mode (bypass formatter)
     if (body.message && typeof body.message === 'string') {
-      const success = await sendTelegramMessage(body.message);
+      const result = await sendTelegramMessage(body.message);
       return NextResponse.json({
-        success,
+        success: result.ok,
         hasToken: !!TELEGRAM_BOT_TOKEN,
         hasChatId: !!TELEGRAM_CHAT_ID,
-        message: success ? 'Sent' : 'Failed to send - check env vars'
+        tokenPrefix: TELEGRAM_BOT_TOKEN.substring(0, 5) + '...',
+        chatId: TELEGRAM_CHAT_ID,
+        error: result.error,
       });
     }
 
     const message = formatAlertMessage(body);
-    const success = await sendTelegramMessage(message);
+    const result = await sendTelegramMessage(message);
 
     return NextResponse.json({
-      success,
+      success: result.ok,
       hasToken: !!TELEGRAM_BOT_TOKEN,
       hasChatId: !!TELEGRAM_CHAT_ID,
-      message: success ? 'Sent' : 'Failed to send'
+      error: result.error,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
