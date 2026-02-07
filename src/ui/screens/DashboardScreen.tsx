@@ -740,7 +740,7 @@ export default function DashboardScreen() {
       {/* Details Modal */}
       {selectedOpportunity && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center sm:p-4"
           onClick={() => setSelectedOpportunity(null)}
         >
           <div

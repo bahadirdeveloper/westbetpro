@@ -75,6 +75,75 @@ async function sendTelegramAlert(alert: LiveAlert) {
   }
 }
 
+async function sendUpcomingMatchAlert(alert: LiveAlert) {
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!telegramToken || !chatId) return;
+
+  const alertKey = `upcoming_${alert.id}`;
+  if (sentTelegramAlerts.has(alertKey)) return;
+  sentTelegramAlerts.add(alertKey);
+
+  const message = `📋 <b>FIRSAT MAC!</b>\n\n` +
+    `⚽ <b>${alert.homeTeam} - ${alert.awayTeam}</b>\n` +
+    `⏰ Saat: <b>${alert.matchTime}</b>\n` +
+    `🎯 Tahmin: <b>${alert.prediction}</b> (%${alert.confidence})\n` +
+    `🏆 ${alert.league}\n` +
+    (alert.alternativeAlerts.length > 0
+      ? `\n📊 Alternatifler:\n` + alert.alternativeAlerts.map(a => `  • ${a.prediction} (%${a.confidence})`).join('\n')
+      : '');
+
+  try {
+    await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_notification: false,
+      }),
+    });
+  } catch (e) {
+    console.error('Telegram upcoming send error:', e);
+  }
+}
+
+async function sendResultAlert(alert: LiveAlert) {
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!telegramToken || !chatId) return;
+
+  const alertKey = `result_${alert.id}`;
+  if (sentTelegramAlerts.has(alertKey)) return;
+  sentTelegramAlerts.add(alertKey);
+
+  const won = alert.predictionResult === true;
+  const emoji = won ? '✅' : '❌';
+  const status = won ? 'TUTTU' : 'YATTI';
+
+  const message = `${emoji} <b>SONUC: ${status}</b>\n\n` +
+    `⚽ <b>${alert.homeTeam} - ${alert.awayTeam}</b>\n` +
+    `📊 Skor: <b>${alert.currentScore}</b>\n` +
+    `🎯 Tahmin: <b>${alert.prediction}</b> (%${alert.confidence})\n` +
+    `🏆 ${alert.league}`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_notification: won ? false : true,
+      }),
+    });
+  } catch (e) {
+    console.error('Telegram result send error:', e);
+  }
+}
+
 // Throttle: trigger cron at most once per 2 minutes
 let lastCronTrigger = 0;
 
@@ -204,6 +273,16 @@ export async function GET() {
             alertState: alt.alertState,
           });
         }
+      }
+
+      // Send Telegram for upcoming high-confidence matches
+      if (isUpcoming && alertItem.confidence >= 88) {
+        sendUpcomingMatchAlert(alertItem);
+      }
+
+      // Send Telegram for finished match results
+      if (isFinished && predResult !== null) {
+        sendResultAlert(alertItem);
       }
     }
 
