@@ -75,8 +75,32 @@ async function sendTelegramAlert(alert: LiveAlert) {
   }
 }
 
+// Throttle: trigger cron at most once per 2 minutes
+let lastCronTrigger = 0;
+
+async function triggerCronInBackground() {
+  const now = Date.now();
+  if (now - lastCronTrigger < 120_000) return; // 2 min cooldown
+  lastCronTrigger = now;
+
+  const cronSecret = process.env.CRON_SECRET || '';
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+  try {
+    fetch(`${baseUrl}/api/cron/live-scores`, {
+      headers: { Authorization: `Bearer ${cronSecret}` },
+      cache: 'no-store',
+    }).catch(() => {});
+  } catch {}
+}
+
 export async function GET() {
   try {
+    // Trigger live score cron in background (throttled to 1x/2min)
+    triggerCronInBackground();
+
     const today = getTodayDate();
 
     // Fetch today's predictions
