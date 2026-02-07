@@ -50,3 +50,28 @@ export async function supabaseUpdate(
   }
   return { ok: false, status: res.status };
 }
+
+export async function supabaseInsert(
+  table: string,
+  data: Record<string, any> | Record<string, any>[],
+  upsert: boolean = false
+): Promise<{ ok: boolean; status: number; data?: any[] }> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return { ok: false, status: 0 };
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': upsert ? 'resolution=merge-duplicates,return=representation' : 'return=representation',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (res.ok) {
+    const rows = await res.json();
+    return { ok: true, status: res.status, data: rows };
+  }
+  return { ok: false, status: res.status };
+}
