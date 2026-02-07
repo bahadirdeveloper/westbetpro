@@ -616,8 +616,8 @@ CREATE POLICY "Allow service role full access"
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card-dark border border-aged-gold/30 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center sm:p-4">
+          <div className="bg-card-dark border border-aged-gold/30 rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-card-dark border-b border-white/10 p-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">
                 {isAddMode ? 'Yeni Kural Ekle' : 'Kural Duzenle'}

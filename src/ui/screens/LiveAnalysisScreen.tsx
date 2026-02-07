@@ -63,6 +63,16 @@ export default function LiveAnalysisScreen() {
   const prevHotIds = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedMatch) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedMatch]);
+
   // Notification sound
   const playAlertSound = useCallback(() => {
     if (!soundEnabled) return;

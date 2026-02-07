@@ -261,12 +261,12 @@ export async function GET() {
 
       // Send Telegram for hot alerts (live matches, 1 goal away)
       if (isLive && mainAlert && mainAlert.alertLevel === 'hot' && !mainAlert.isAlreadyHit) {
-        sendTelegramAlert(alertItem);
+        await sendTelegramAlert(alertItem);
       }
       // Also check alternative predictions
       for (const alt of altAlerts) {
         if (isLive && alt.alertState && alt.alertState.alertLevel === 'hot' && !alt.alertState.isAlreadyHit) {
-          sendTelegramAlert({
+          await sendTelegramAlert({
             ...alertItem,
             prediction: alt.prediction,
             confidence: alt.confidence,
@@ -275,14 +275,14 @@ export async function GET() {
         }
       }
 
-      // Send Telegram for upcoming high-confidence matches
-      if (isUpcoming && alertItem.confidence >= 88) {
-        sendUpcomingMatchAlert(alertItem);
+      // Send Telegram for upcoming matches (confidence >= 75%)
+      if (isUpcoming && alertItem.confidence >= 75) {
+        await sendUpcomingMatchAlert(alertItem);
       }
 
       // Send Telegram for finished match results
       if (isFinished && predResult !== null) {
-        sendResultAlert(alertItem);
+        await sendResultAlert(alertItem);
       }
     }
 

@@ -79,6 +79,16 @@ export default function DashboardScreen() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [istanbulTime, setIstanbulTime] = useState<string>('');
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedOpportunity) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedOpportunity]);
+
   // Update Istanbul time every second
   useEffect(() => {
     const updateTime = () => {

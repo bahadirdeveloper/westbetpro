@@ -179,8 +179,8 @@ export default function PredictionsViewerScreen() {
 
       {/* Detail Modal */}
       {showModal && selectedPrediction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-card-dark border border-aged-gold/20 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] sm:p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-card-dark border border-aged-gold/20 rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-aged-gold/10">
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-xl text-white">Tahmin Detayları</h2>

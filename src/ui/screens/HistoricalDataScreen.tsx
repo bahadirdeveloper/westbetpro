@@ -87,6 +87,16 @@ export default function HistoricalDataScreen() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedPrediction) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedPrediction]);
+
   // Fetch available dates on mount
   useEffect(() => {
     async function fetchDates() {
@@ -230,14 +240,14 @@ export default function HistoricalDataScreen() {
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Date Selector - Left Panel */}
               <div className="lg:w-72 xl:w-80 flex-shrink-0">
-                <div className="bg-card-dark rounded-2xl border border-white/5 overflow-hidden sticky top-24">
+                <div className="bg-card-dark rounded-2xl border border-white/5 overflow-hidden sticky top-14">
                   <div className="p-4 border-b border-white/5">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <span className="material-icons-round text-aged-gold text-base">calendar_month</span>
                       Tarih Seçin
                     </h3>
                   </div>
-                  <div className="max-h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar">
+                  <div className="max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar">
                     {dates.map((d) => {
                       const isSelected = selectedDate === d.date;
                       const dayName = getDayName(d.date);
