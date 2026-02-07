@@ -8,7 +8,7 @@
  * Uses direct REST API for reads to avoid Supabase JS client caching issues.
  *
  * Query params:
- * - date: 'today' | 'tomorrow' | 'day_after_tomorrow' (default: 'today')
+ * - date: 'yesterday' | 'today' | 'tomorrow' | 'day_after_tomorrow' (default: 'today')
  */
 
 import { NextResponse } from 'next/server';
@@ -36,7 +36,9 @@ function getTargetDate(dateParam: string): string {
   const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
   const istanbulTime = new Date(utcTime + 3 * 3600000);
 
-  if (dateParam === 'tomorrow') {
+  if (dateParam === 'yesterday') {
+    istanbulTime.setDate(istanbulTime.getDate() - 1);
+  } else if (dateParam === 'tomorrow') {
     istanbulTime.setDate(istanbulTime.getDate() + 1);
   } else if (dateParam === 'day_after_tomorrow') {
     istanbulTime.setDate(istanbulTime.getDate() + 2);

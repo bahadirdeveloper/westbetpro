@@ -74,7 +74,7 @@ export default function DashboardScreen() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<'today' | 'tomorrow' | 'day_after_tomorrow'>('today');
+  const [selectedDate, setSelectedDate] = useState<'yesterday' | 'today' | 'tomorrow' | 'day_after_tomorrow'>('today');
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [istanbulTime, setIstanbulTime] = useState<string>('');
 
@@ -150,29 +150,33 @@ export default function DashboardScreen() {
       if (isMounted) await fetchOpportunities();
     }
 
-    // Initial: trigger cron first, then load data
-    triggerAndRefresh();
+    // For "today" we trigger cron + polling; for other dates just fetch data once
+    const isToday = selectedDate === 'today';
 
-    // Check if there are active (live/not_started) matches to decide polling rate
-    const hasActiveMatches = () => {
-      return opportunities.some(o => !o.is_finished);
-    };
+    if (isToday) {
+      // Initial: trigger cron first, then load data
+      triggerAndRefresh();
 
-    // UI data refresh every 15 seconds
-    const uiInterval = setInterval(() => {
-      if (isMounted) fetchOpportunities();
-    }, 15000);
+      // UI data refresh every 15 seconds
+      const uiInterval = setInterval(() => {
+        if (isMounted) fetchOpportunities();
+      }, 15000);
 
-    // Live score cron every 60 seconds (calls API-Football + updates Supabase)
-    const cronInterval = setInterval(() => {
-      if (isMounted) triggerAndRefresh();
-    }, 60000);
+      // Live score cron every 60 seconds (calls API-Football + updates Supabase)
+      const cronInterval = setInterval(() => {
+        if (isMounted) triggerAndRefresh();
+      }, 60000);
 
-    return () => {
-      isMounted = false;
-      clearInterval(uiInterval);
-      clearInterval(cronInterval);
-    };
+      return () => {
+        isMounted = false;
+        clearInterval(uiInterval);
+        clearInterval(cronInterval);
+      };
+    } else {
+      // For yesterday/tomorrow/day_after_tomorrow: just fetch once, no polling
+      fetchOpportunities();
+      return () => { isMounted = false; };
+    }
   }, [selectedDate]);
 
   // Calculate risk level from confidence
@@ -388,6 +392,16 @@ export default function DashboardScreen() {
             </div>
             <div className="flex bg-card-dark p-1 rounded-lg border border-white/5">
               <button
+                onClick={() => setSelectedDate('yesterday')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  selectedDate === 'yesterday'
+                    ? 'bg-white/10 text-white'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Dün
+              </button>
+              <button
                 onClick={() => setSelectedDate('today')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   selectedDate === 'today'
@@ -447,7 +461,7 @@ export default function DashboardScreen() {
                 </span>
               </div>
               <p className="text-slate-500 text-sm mb-1 uppercase tracking-wider font-bold">
-                Bugünün Başarısı
+                {selectedDate === 'yesterday' ? 'Dünün Başarısı' : selectedDate === 'today' ? 'Bugünün Başarısı' : 'Başarı Durumu'}
               </p>
               {(() => {
                 const success = getDailySuccessRate();
