@@ -2,12 +2,21 @@
  * API Route: Live Alerts
  * Returns currently live matches + upcoming matches with their alert states
  * Sends Telegram notifications for hot alerts automatically
+ *
+ * OPTIMIZED: Directly fetches live scores from API-Football and updates
+ * Supabase inline, eliminating dependency on slow cron job.
+ * Throttled to max 1 API-Football call per 60 seconds.
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseSelect } from '@/lib/supabase';
-import { getTodayDate } from '@/lib/dates';
+import { supabaseSelect, supabaseUpdate } from '@/lib/supabase';
+import { getTodayDate, getYesterdayDate } from '@/lib/dates';
 import { calculateAlertState, type AlertState } from '@/lib/alert-logic';
+import { teamsMatch } from '@/lib/teams';
+import { checkPredictionResult, toBooleanResult } from '@/lib/predictions';
+
+const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY || '';
+const API_FOOTBALL_URL = 'https://v3.football.api-sports.io';
 
 interface LiveAlert {
   id: string;
@@ -67,39 +76,136 @@ function sendTelegramMessage(text: string, silent: boolean = false): Promise<voi
   });
 }
 
-// Throttle: trigger cron at most once per 2 minutes
-let lastCronTrigger = 0;
+// --- Inline Live Score Fetcher ---
+// Throttle: fetch from API-Football at most once per 60 seconds
+let lastApiFetch = 0;
+let cachedFixtures: any[] = [];
 
-function triggerCronInBackground() {
+async function fetchLiveFixturesThrottled(): Promise<any[]> {
   const now = Date.now();
-  if (now - lastCronTrigger < 120_000) return;
-  lastCronTrigger = now;
+  // Return cached if less than 60 seconds since last fetch
+  if (now - lastApiFetch < 60_000 && cachedFixtures.length >= 0) {
+    return cachedFixtures;
+  }
 
-  const cronSecret = process.env.CRON_SECRET || '';
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  if (!API_FOOTBALL_KEY) return cachedFixtures;
 
   try {
-    fetch(`${baseUrl}/api/cron/live-scores`, {
-      headers: { Authorization: `Bearer ${cronSecret}` },
+    const res = await fetch(`${API_FOOTBALL_URL}/fixtures?live=all`, {
+      headers: {
+        'x-rapidapi-key': API_FOOTBALL_KEY,
+        'x-rapidapi-host': 'v3.football.api-sports.io'
+      },
       cache: 'no-store',
-    }).catch(() => {});
-  } catch {}
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      cachedFixtures = data.response || [];
+      lastApiFetch = now;
+    }
+  } catch (e) {
+    console.error('API-Football fetch error:', e);
+  }
+
+  return cachedFixtures;
+}
+
+function determineMatchStatus(fixture: any) {
+  const statusShort = fixture.fixture?.status?.short || '';
+  const elapsed = fixture.fixture?.status?.elapsed || null;
+
+  const liveStatuses = ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT'];
+  const finishedStatuses = ['FT', 'AET', 'PEN', 'AWD', 'WO'];
+
+  if (liveStatuses.includes(statusShort)) {
+    return { is_live: true, is_finished: false, live_status: statusShort, elapsed };
+  }
+  if (finishedStatuses.includes(statusShort)) {
+    return { is_live: false, is_finished: true, live_status: 'finished', elapsed: 90 };
+  }
+  return { is_live: false, is_finished: false, live_status: 'not_started', elapsed: null };
+}
+
+// Update Supabase predictions with live data inline
+async function updatePredictionsFromLiveData(predictions: any[], fixtures: any[]): Promise<number> {
+  if (fixtures.length === 0) return 0;
+
+  let updatedCount = 0;
+  const updatePromises: Promise<void>[] = [];
+
+  for (const pred of predictions) {
+    if (pred.is_finished) continue;
+
+    const matchedFixture = fixtures.find((f: any) =>
+      teamsMatch(pred.home_team, pred.away_team, f.teams?.home?.name || '', f.teams?.away?.name || '')
+    );
+
+    if (!matchedFixture) continue;
+
+    const status = determineMatchStatus(matchedFixture);
+    const homeScore = matchedFixture.goals?.home ?? null;
+    const awayScore = matchedFixture.goals?.away ?? null;
+    const halftimeHome = matchedFixture.score?.halftime?.home ?? null;
+    const halftimeAway = matchedFixture.score?.halftime?.away ?? null;
+
+    // Check if data actually changed
+    if (
+      pred.home_score === homeScore &&
+      pred.away_score === awayScore &&
+      pred.is_live === status.is_live &&
+      pred.is_finished === status.is_finished &&
+      pred.elapsed === status.elapsed
+    ) {
+      continue; // No change, skip update
+    }
+
+    let predictionResult: boolean | null = toBooleanResult(pred.prediction_result);
+    if (status.is_finished && homeScore !== null && awayScore !== null && predictionResult === null) {
+      predictionResult = checkPredictionResult(pred.prediction || '', homeScore, awayScore, halftimeHome, halftimeAway);
+    }
+
+    const updatePromise = supabaseUpdate('predictions', pred.id, {
+      is_live: status.is_live,
+      is_finished: status.is_finished,
+      live_status: status.live_status,
+      elapsed: status.elapsed,
+      home_score: homeScore,
+      away_score: awayScore,
+      halftime_home: halftimeHome,
+      halftime_away: halftimeAway,
+      prediction_result: predictionResult,
+      updated_at: new Date().toISOString()
+    }).then(result => {
+      if (result.ok) updatedCount++;
+    });
+
+    updatePromises.push(updatePromise);
+  }
+
+  // Run all updates in parallel (max 5 seconds)
+  if (updatePromises.length > 0) {
+    await Promise.race([
+      Promise.allSettled(updatePromises),
+      new Promise(resolve => setTimeout(resolve, 5000)),
+    ]);
+  }
+
+  return updatedCount;
 }
 
 export async function GET() {
   try {
-    // Trigger live score cron in background (throttled to 1x/2min)
-    triggerCronInBackground();
-
     const today = getTodayDate();
+    const yesterday = getYesterdayDate();
 
-    // Fetch today's predictions
-    const predictions = await supabaseSelect(
-      'predictions',
-      `match_date=eq.${today}&order=match_time.asc&select=*`
-    );
+    // Step 1: Fetch predictions from Supabase
+    const [todayPredictions, yesterdayUnfinished] = await Promise.all([
+      supabaseSelect('predictions', `match_date=eq.${today}&order=match_time.asc&select=*`),
+      supabaseSelect('predictions', `match_date=eq.${yesterday}&is_finished=eq.false&order=match_time.asc&select=*`),
+    ]);
+
+    const predictions = [...(yesterdayUnfinished || []), ...(todayPredictions || [])];
 
     if (!predictions || predictions.length === 0) {
       return NextResponse.json({
@@ -110,6 +216,29 @@ export async function GET() {
       });
     }
 
+    // Step 2: Fetch live scores directly from API-Football (throttled, 1x/60s)
+    const hasUnfinished = predictions.some((p: any) => !p.is_finished);
+    let liveUpdatedCount = 0;
+
+    if (hasUnfinished) {
+      const liveFixtures = await fetchLiveFixturesThrottled();
+
+      if (liveFixtures.length > 0) {
+        liveUpdatedCount = await updatePredictionsFromLiveData(predictions, liveFixtures);
+
+        // If we updated data, re-read from Supabase for fresh values
+        if (liveUpdatedCount > 0) {
+          const [freshToday, freshYesterday] = await Promise.all([
+            supabaseSelect('predictions', `match_date=eq.${today}&order=match_time.asc&select=*`),
+            supabaseSelect('predictions', `match_date=eq.${yesterday}&is_finished=eq.false&order=match_time.asc&select=*`),
+          ]);
+          predictions.length = 0;
+          predictions.push(...(freshYesterday || []), ...(freshToday || []));
+        }
+      }
+    }
+
+    // Step 3: Build alerts from (now-fresh) predictions
     const alerts: LiveAlert[] = [];
     const telegramPromises: Promise<void>[] = [];
 
@@ -286,6 +415,7 @@ export async function GET() {
       alerts,
       stats,
       count: alerts.length,
+      liveUpdated: liveUpdatedCount,
     });
   } catch (error: any) {
     console.error('Live alerts error:', error);
@@ -294,3 +424,4 @@ export async function GET() {
 }
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;

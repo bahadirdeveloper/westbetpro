@@ -13,8 +13,50 @@ import { NextResponse } from 'next/server';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { toBooleanResult, checkPredictionResult } from '@/lib/predictions';
-import { getTargetDate, formatDateTurkish } from '@/lib/dates';
-import { supabaseSelect } from '@/lib/supabase';
+import { getTargetDate, getTodayDate, formatDateTurkish } from '@/lib/dates';
+import { supabaseSelect, supabaseUpdate } from '@/lib/supabase';
+import { teamsMatch } from '@/lib/teams';
+
+const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY || '';
+const API_FOOTBALL_URL = 'https://v3.football.api-sports.io';
+
+// Throttled live score fetcher - shared across requests (max 1x/60s)
+let lastLiveFetch = 0;
+let cachedLiveFixtures: any[] = [];
+
+async function fetchLiveFixturesThrottled(): Promise<any[]> {
+  const now = Date.now();
+  if (now - lastLiveFetch < 60_000) return cachedLiveFixtures;
+  if (!API_FOOTBALL_KEY) return cachedLiveFixtures;
+
+  try {
+    const res = await fetch(`${API_FOOTBALL_URL}/fixtures?live=all`, {
+      headers: {
+        'x-rapidapi-key': API_FOOTBALL_KEY,
+        'x-rapidapi-host': 'v3.football.api-sports.io'
+      },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      cachedLiveFixtures = data.response || [];
+      lastLiveFetch = now;
+    }
+  } catch (e) {
+    console.error('API-Football fetch error:', e);
+  }
+  return cachedLiveFixtures;
+}
+
+function determineMatchStatus(fixture: any) {
+  const statusShort = fixture.fixture?.status?.short || '';
+  const elapsed = fixture.fixture?.status?.elapsed || null;
+  const liveStatuses = ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT'];
+  const finishedStatuses = ['FT', 'AET', 'PEN', 'AWD', 'WO'];
+  if (liveStatuses.includes(statusShort)) return { is_live: true, is_finished: false, live_status: statusShort, elapsed };
+  if (finishedStatuses.includes(statusShort)) return { is_live: false, is_finished: true, live_status: 'finished', elapsed: 90 };
+  return { is_live: false, is_finished: false, live_status: 'not_started', elapsed: null };
+}
 
 // Try reading from local JSON file
 function tryLocalFile(dateParam: string): any[] | null {
@@ -130,6 +172,57 @@ export async function GET(request: Request) {
         );
 
         if (data && data.length > 0) {
+          // Inline live score update for today's matches
+          if (date === 'today') {
+            const hasUnfinished = data.some((p: any) => !p.is_finished);
+            if (hasUnfinished) {
+              const liveFixtures = await fetchLiveFixturesThrottled();
+              if (liveFixtures.length > 0) {
+                const updatePromises: Promise<void>[] = [];
+                for (const pred of data) {
+                  if (pred.is_finished) continue;
+                  const matched = liveFixtures.find((f: any) =>
+                    teamsMatch(pred.home_team, pred.away_team, f.teams?.home?.name || '', f.teams?.away?.name || '')
+                  );
+                  if (!matched) continue;
+                  const status = determineMatchStatus(matched);
+                  const hs = matched.goals?.home ?? null;
+                  const as2 = matched.goals?.away ?? null;
+                  const hth = matched.score?.halftime?.home ?? null;
+                  const hta = matched.score?.halftime?.away ?? null;
+                  if (pred.home_score === hs && pred.away_score === as2 && pred.is_live === status.is_live && pred.elapsed === status.elapsed) continue;
+                  let pr: boolean | null = toBooleanResult(pred.prediction_result);
+                  if (status.is_finished && hs !== null && as2 !== null && pr === null) {
+                    pr = checkPredictionResult(pred.prediction || '', hs, as2, hth, hta);
+                  }
+                  // Update local data array immediately
+                  pred.is_live = status.is_live;
+                  pred.is_finished = status.is_finished;
+                  pred.live_status = status.live_status;
+                  pred.elapsed = status.elapsed;
+                  pred.home_score = hs;
+                  pred.away_score = as2;
+                  pred.halftime_home = hth;
+                  pred.halftime_away = hta;
+                  pred.prediction_result = pr;
+                  // Also update Supabase in background
+                  updatePromises.push(
+                    supabaseUpdate('predictions', pred.id, {
+                      is_live: status.is_live, is_finished: status.is_finished,
+                      live_status: status.live_status, elapsed: status.elapsed,
+                      home_score: hs, away_score: as2,
+                      halftime_home: hth, halftime_away: hta,
+                      prediction_result: pr, updated_at: new Date().toISOString()
+                    }).then(() => {})
+                  );
+                }
+                if (updatePromises.length > 0) {
+                  await Promise.race([Promise.allSettled(updatePromises), new Promise(r => setTimeout(r, 5000))]);
+                }
+              }
+            }
+          }
+
           opportunities = data.map((pred: any) => {
             const isFinished = pred.is_finished || false;
             const homeScore = pred.home_score ?? null;
