@@ -94,6 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
+    { id: 'excel-upload', icon: 'upload_file', label: 'Excel Yükle', href: '/admin/excel-upload' },
     { id: 'rules', icon: 'rule', label: 'Altin Kurallar', href: '/admin/rules' },
     { id: 'predictions', icon: 'analytics', label: 'Tahminler', href: '/admin/predictions' },
     { id: 'matches', icon: 'sports_soccer', label: 'Maclar', href: '/admin/matches' },
