@@ -68,13 +68,13 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen bg-background-dark flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="bg-card-dark border border-aged-gold/20 rounded-2xl p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="inline-block bg-primary/10 rounded-full p-4 mb-4">
-              <span className="material-icons-round text-primary text-5xl">shield</span>
+        <div className="bg-card-dark border border-aged-gold/20 rounded-2xl p-5 sm:p-8 shadow-2xl">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="inline-block bg-primary/10 rounded-full p-3 sm:p-4 mb-3 sm:mb-4">
+              <span className="material-icons-round text-primary text-4xl sm:text-5xl">shield</span>
             </div>
-            <h1 className="font-western text-aged-gold text-3xl tracking-wider mb-2">ADMIN GİRİŞİ</h1>
-            <p className="text-slate-400 text-sm">Sadece yetkili şerifler girebilir</p>
+            <h1 className="font-western text-aged-gold text-2xl sm:text-3xl tracking-wider mb-2">ADMIN GIRISI</h1>
+            <p className="text-slate-400 text-sm">Sadece yetkili serifler girebilir</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">

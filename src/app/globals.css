@@ -75,4 +75,13 @@
       stroke-dashoffset: 0;
     }
   }
+
+  /* Hide scrollbar for date tabs and horizontal scroll areas */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

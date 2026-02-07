@@ -379,89 +379,89 @@ export default function DashboardScreen() {
       <main className="lg:ml-64 min-h-screen">
         <Header statusText={`İstanbul Saati: ${istanbulTime} | Canlı Veri Motoru Aktif`} />
 
-        <section className="p-8">
+        <section className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h2 className="text-4xl font-western text-white mb-2 tracking-wide">
-                Haftalık Fikstür Havuzu
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-western text-white mb-1 sm:mb-2 tracking-wide">
+                Haftalik Fikstur Havuzu
               </h2>
-              <p className="text-slate-400">
-                Yapay zeka şeriflerimiz tarafından taranan yüksek olasılıklı düellolar.
+              <p className="text-slate-400 text-sm sm:text-base">
+                Yapay zeka seriflerimiz tarafindan taranan yuksek olasilikli duellolar.
               </p>
             </div>
-            <div className="flex bg-card-dark p-1 rounded-lg border border-white/5">
+            <div className="flex bg-card-dark p-1 rounded-lg border border-white/5 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setSelectedDate('yesterday')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   selectedDate === 'yesterday'
                     ? 'bg-white/10 text-white'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                Dün
+                Dun
               </button>
               <button
                 onClick={() => setSelectedDate('today')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   selectedDate === 'today'
                     ? 'bg-white/10 text-white'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                Bugün
+                Bugun
               </button>
               <button
                 onClick={() => setSelectedDate('tomorrow')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   selectedDate === 'tomorrow'
                     ? 'bg-white/10 text-white'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                Yarın
+                Yarin
               </button>
               <button
                 onClick={() => setSelectedDate('day_after_tomorrow')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   selectedDate === 'day_after_tomorrow'
                     ? 'bg-white/10 text-white'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                Öbür Gün
+                Obur Gun
               </button>
             </div>
           </div>
 
           {/* Stats Cards - Aggregate stats (can be updated later) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div className="bg-card-dark p-6 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
-              <div className="flex justify-between items-start mb-4">
-                <span className="p-3 rounded-xl bg-primary/10 text-primary">
-                  <span className="material-icons-round">trending_up</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-10">
+            <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+              <div className="flex justify-between items-start mb-3 sm:mb-4">
+                <span className="p-2.5 sm:p-3 rounded-xl bg-primary/10 text-primary">
+                  <span className="material-icons-round text-xl sm:text-2xl">trending_up</span>
                 </span>
                 <span className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase">
                   CANLI
                 </span>
               </div>
-              <p className="text-slate-500 text-sm mb-1 uppercase tracking-wider font-bold">
-                Fırsat Maç Sayısı
+              <p className="text-slate-500 text-xs sm:text-sm mb-1 uppercase tracking-wider font-bold">
+                Firsat Mac Sayisi
               </p>
-              <h3 className="text-3xl font-western text-white">{opportunities.length}</h3>
+              <h3 className="text-2xl sm:text-3xl font-western text-white">{opportunities.length}</h3>
             </div>
 
-            <div className="bg-card-dark p-6 rounded-2xl border border-white/5 hover:border-aged-gold/20 transition-all group">
-              <div className="flex justify-between items-start mb-4">
-                <span className="p-3 rounded-xl bg-aged-gold/10 text-aged-gold">
-                  <span className="material-icons-round">analytics</span>
+            <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-aged-gold/20 transition-all group">
+              <div className="flex justify-between items-start mb-3 sm:mb-4">
+                <span className="p-2.5 sm:p-3 rounded-xl bg-aged-gold/10 text-aged-gold">
+                  <span className="material-icons-round text-xl sm:text-2xl">analytics</span>
                 </span>
                 <span className="text-[10px] font-bold text-aged-gold px-2 py-1 bg-aged-gold/10 rounded uppercase">
-                  SONUÇLAR
+                  SONUCLAR
                 </span>
               </div>
-              <p className="text-slate-500 text-sm mb-1 uppercase tracking-wider font-bold">
-                {selectedDate === 'yesterday' ? 'Dünün Başarısı' : selectedDate === 'today' ? 'Bugünün Başarısı' : 'Başarı Durumu'}
+              <p className="text-slate-500 text-xs sm:text-sm mb-1 uppercase tracking-wider font-bold">
+                {selectedDate === 'yesterday' ? 'Dunun Basarisi' : selectedDate === 'today' ? 'Bugunun Basarisi' : 'Basari Durumu'}
               </p>
               {(() => {
                 const success = getDailySuccessRate();
@@ -485,17 +485,17 @@ export default function DashboardScreen() {
               })()}
             </div>
 
-            <div className="bg-card-dark p-6 rounded-2xl border border-white/5 hover:border-saddle-brown/20 transition-all group">
-              <div className="flex justify-between items-start mb-4">
-                <span className="p-3 rounded-xl bg-saddle-brown/10 text-saddle-brown">
-                  <span className="material-icons-round">schedule</span>
+            <div className="bg-card-dark p-4 sm:p-6 rounded-2xl border border-white/5 hover:border-saddle-brown/20 transition-all group sm:col-span-2 md:col-span-1">
+              <div className="flex justify-between items-start mb-3 sm:mb-4">
+                <span className="p-2.5 sm:p-3 rounded-xl bg-saddle-brown/10 text-saddle-brown">
+                  <span className="material-icons-round text-xl sm:text-2xl">schedule</span>
                 </span>
                 <span className="text-[10px] font-bold text-saddle-brown px-2 py-1 bg-saddle-brown/10 rounded uppercase">
-                  YAKLAŞAN
+                  YAKLASAN
                 </span>
               </div>
-              <p className="text-slate-500 text-sm mb-1 uppercase tracking-wider font-bold">
-                Sıradaki Maç
+              <p className="text-slate-500 text-xs sm:text-sm mb-1 uppercase tracking-wider font-bold">
+                Siradaki Mac
               </p>
               {(() => {
                 const next = getNextMatch();
@@ -553,7 +553,7 @@ export default function DashboardScreen() {
 
           {/* Match Cards - REAL DATA ONLY */}
           {!loading && !error && opportunities.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
               {opportunities.map((opp, index) => {
                 const risk = getRiskLevel(opp.best_confidence);
                 const gaugeOffset = getGaugeOffset(opp.best_confidence);
@@ -563,11 +563,11 @@ export default function DashboardScreen() {
                 return (
                   <div
                     key={index}
-                    className={`bg-card-dark p-5 rounded-2xl border ${
+                    className={`bg-card-dark p-4 sm:p-5 rounded-2xl border ${
                       opp.best_confidence >= 95
                         ? 'border-aged-gold/30'
                         : 'border-white/5'
-                    } relative overflow-hidden group hover:scale-[1.02] transition-transform`}
+                    } relative overflow-hidden group hover:scale-[1.01] sm:hover:scale-[1.02] transition-transform`}
                   >
                     {/* Emoji */}
                     <div
@@ -697,18 +697,18 @@ export default function DashboardScreen() {
       {/* Details Modal */}
       {selectedOpportunity && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4"
           onClick={() => setSelectedOpportunity(null)}
         >
           <div
-            className="bg-card-dark rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card-dark rounded-t-2xl sm:rounded-2xl border border-white/10 w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 bg-card-dark border-b border-white/10 p-6">
+            <div className="sticky top-0 bg-card-dark border-b border-white/10 p-4 sm:p-6">
               <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-2xl font-western text-white mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-western text-white mb-2 truncate">
                     {selectedOpportunity['Ev Sahibi']} vs {selectedOpportunity.Deplasman}
                   </h3>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -730,7 +730,7 @@ export default function DashboardScreen() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Main Prediction */}
               <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
                 <p className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-2">

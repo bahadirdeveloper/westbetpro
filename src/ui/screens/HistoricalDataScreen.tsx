@@ -192,14 +192,14 @@ export default function HistoricalDataScreen() {
       <main className="lg:ml-64 min-h-screen">
         <Header statusText="Arşiv" searchPlaceholder="Arşivde ara..." />
 
-        <section className="p-4 md:p-8">
+        <section className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           {/* Page Header */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-western text-white mb-2 tracking-wide uppercase">
-              Geçmiş Veriler
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-western text-white mb-2 tracking-wide uppercase">
+              Gecmis Veriler
             </h2>
-            <p className="text-slate-400">
-              Tamamlanmış düelloların ve şerif raporlarının kayıt defteri.
+            <p className="text-slate-400 text-sm sm:text-base">
+              Tamamlanmis duellolarin ve serif raporlarinin kayit defteri.
             </p>
           </div>
 
@@ -495,18 +495,18 @@ export default function HistoricalDataScreen() {
       {/* Prediction Detail Modal */}
       {selectedPrediction && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4"
           onClick={() => setSelectedPrediction(null)}
         >
           <div
-            className="bg-card-dark rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card-dark rounded-t-2xl sm:rounded-2xl border border-white/10 w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 bg-card-dark border-b border-white/10 p-6 z-10">
+            <div className="sticky top-0 bg-card-dark border-b border-white/10 p-4 sm:p-6 z-10">
               <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-2xl font-western text-white mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-western text-white mb-2 truncate">
                     {selectedPrediction.home_team} vs {selectedPrediction.away_team}
                   </h3>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -529,7 +529,7 @@ export default function HistoricalDataScreen() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Score (if available) */}
               {(selectedPrediction.is_live || selectedPrediction.is_finished) &&
                 selectedPrediction.home_score !== null && selectedPrediction.away_score !== null && (

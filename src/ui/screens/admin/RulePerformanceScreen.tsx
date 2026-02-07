@@ -308,7 +308,7 @@ export default function RulePerformanceScreen() {
           <h1 className="font-western text-3xl text-aged-gold mb-2">ALTIN KURALLAR</h1>
           <p className="text-slate-400">Golden Rules yonetimi ve duzenlemesi</p>
         </div>
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-8 text-center">
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 sm:p-8 text-center">
           <span className="material-icons-round text-yellow-400 text-5xl mb-4 block">build</span>
           <h3 className="text-xl font-bold text-white mb-2">Veritabani Kurulumu Gerekli</h3>
           <p className="text-slate-400 mb-6 max-w-lg mx-auto">

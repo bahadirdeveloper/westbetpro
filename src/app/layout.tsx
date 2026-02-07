@@ -1,9 +1,44 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#1a1a2e',
+}
+
 export const metadata: Metadata = {
-  title: 'West Analyze - Batı Analizi',
-  description: 'AI destekli bahis analiz platformu',
+  title: {
+    default: 'West Analyze - AI Destekli Bahis Analiz Platformu',
+    template: '%s | West Analyze',
+  },
+  description: 'Yapay zeka destekli profesyonel bahis analiz platformu. Altın kurallar, canlı skor takibi ve yüksek güvenilirlikli tahminler.',
+  keywords: ['bahis analiz', 'AI tahmin', 'maç analizi', 'canlı skor', 'bahis tahmin', 'west analyze'],
+  authors: [{ name: 'WestBetPro' }],
+  creator: 'WestBetPro',
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'tr_TR',
+    url: 'https://westbetpro.vercel.app',
+    siteName: 'West Analyze',
+    title: 'West Analyze - AI Destekli Bahis Analiz Platformu',
+    description: 'Yapay zeka destekli profesyonel bahis analiz platformu. Altın kurallar ve yüksek güvenilirlikli tahminler.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'West Analyze - AI Destekli Bahis Analiz',
+    description: 'Yapay zeka destekli profesyonel bahis analiz platformu.',
+  },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
 }
 
 export default function RootLayout({
@@ -27,7 +62,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body className="overflow-x-hidden">{children}</body>
     </html>
   )
 }
