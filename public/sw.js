@@ -1,14 +1,16 @@
-const CACHE_NAME = 'west-analyze-v1';
-const STATIC_ASSETS = [
-  '/dashboard',
-  '/live-analysis',
-  '/historical-data',
+const CACHE_NAME = 'west-analyze-v2';
+const OFFLINE_URL = '/offline.html';
+
+const PRECACHE_URLS = [
+  '/offline.html',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
-// Install: cache static assets
+// Install: precache essentials
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
   self.skipWaiting();
 });
@@ -23,15 +25,31 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API, stale-while-revalidate for pages
+// Fetch handler
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // API calls: network first, cache fallback
+  // Skip chrome-extension and other non-http
+  if (!url.protocol.startsWith('http')) return;
+
+  // API calls: network only (live data must be fresh)
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return new Response(JSON.stringify({ success: false, message: 'Offline' }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 503,
+        });
+      })
+    );
+    return;
+  }
+
+  // Pages: network first, offline fallback
+  if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -39,18 +57,27 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match(OFFLINE_URL);
+          });
+        })
     );
     return;
   }
 
-  // Static assets: stale-while-revalidate
+  // Static assets (JS, CSS, images): stale-while-revalidate
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const fetching = fetch(event.request).then((response) => {
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
-        return response;
-      }).catch(() => cached);
+      const fetching = fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => cached);
       return cached || fetching;
     })
   );
