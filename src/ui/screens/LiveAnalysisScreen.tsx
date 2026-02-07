@@ -328,7 +328,7 @@ export default function LiveAnalysisScreen() {
       <main className="lg:ml-64 min-h-screen">
         <Header statusText={`Canli Av Sahasi | ${lastUpdate ? `Son: ${lastUpdate}` : 'Yukleniyor...'}`} />
 
-        <section className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
+        <section className="p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8">
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
             <div>

@@ -4,6 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* === PWA Safe Area Support === */
+
+/* Body: safe-area top padding for standalone PWA (status bar area) */
+.env-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Standalone mode specific adjustments */
+@media all and (display-mode: standalone) {
+  /* Header: absorb top notch/dynamic island */
+  .glass-nav {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+  }
+
+  /* Sidebar: absorb top notch on desktop PWA */
+  aside.fixed {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
 @layer utilities {
   .western-border {
     border: 2px solid #C5A059;

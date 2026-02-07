@@ -10,7 +10,7 @@ export default function ROICalculatorScreen() {
       <main className="lg:ml-64 min-h-screen">
         <Header statusText="Kasa Motoru" searchPlaceholder="Araclarda ara..." />
 
-        <section className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
+        <section className="p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8">
           <div className="mb-6 sm:mb-8">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-western text-white mb-2 tracking-wide">ROI Hesaplayici</h2>
             <p className="text-slate-400 text-sm sm:text-base">Yatiriminizin getirisini ve risk dengenizi hesaplayin.</p>

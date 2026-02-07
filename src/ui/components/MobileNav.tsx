@@ -9,7 +9,10 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-4 left-3 right-3 sm:left-auto sm:right-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 bg-card-dark/95 backdrop-blur-xl border border-white/10 px-3 sm:px-6 py-2.5 sm:py-3 rounded-2xl sm:rounded-full flex items-center justify-around sm:justify-center sm:gap-6 shadow-2xl shadow-black/50 z-50">
+    <nav
+      className="lg:hidden fixed left-3 right-3 sm:left-auto sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-card-dark/95 backdrop-blur-xl border border-white/10 px-3 sm:px-6 py-2.5 sm:py-3 rounded-2xl sm:rounded-full flex items-center justify-around sm:justify-center sm:gap-6 shadow-2xl shadow-black/50 z-50"
+      style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+    >
       {items.map((item) => {
         const isActive = activeTab === item.id;
         return (
@@ -26,6 +29,6 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }
