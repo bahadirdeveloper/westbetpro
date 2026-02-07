@@ -203,11 +203,15 @@ export default function DashboardScreen() {
     return 'text-red-500';
   }
 
-  // Get all predictions for a match (best + alternatives)
+  // Get all predictions for a match (best + alternatives, deduplicated)
   function getAllPredictions(opp: Opportunity): Array<{tahmin: string; güven: number; not: string; sonuç?: boolean | null; isBest: boolean}> {
     const all: Array<{tahmin: string; güven: number; not: string; sonuç?: boolean | null; isBest: boolean}> = [];
+    const seen = new Set<string>();
 
     // Add best prediction first
+    const bestNorm = (opp.best_prediction || '').trim();
+    seen.add(bestNorm);
+
     all.push({
       tahmin: opp.best_prediction,
       güven: opp.best_confidence,
@@ -219,8 +223,9 @@ export default function DashboardScreen() {
     // Add alternatives from alternatif_tahminler
     if (opp.alternatif_tahminler && opp.alternatif_tahminler.length > 0) {
       opp.alternatif_tahminler.forEach(alt => {
-        // Skip if same as best prediction
-        if (alt.tahmin === opp.best_prediction) return;
+        const altNorm = (alt.tahmin || '').trim();
+        if (!altNorm || seen.has(altNorm)) return;
+        seen.add(altNorm);
         all.push({
           tahmin: alt.tahmin,
           güven: alt.güven,
@@ -232,7 +237,9 @@ export default function DashboardScreen() {
     } else if (opp.predictions && opp.predictions.length > 0) {
       // Fallback to predictions array
       opp.predictions.forEach(pred => {
-        if (pred.bet === opp.best_prediction) return;
+        const predNorm = (pred.bet || '').trim();
+        if (!predNorm || seen.has(predNorm)) return;
+        seen.add(predNorm);
         all.push({
           tahmin: pred.bet,
           güven: pred.confidence,

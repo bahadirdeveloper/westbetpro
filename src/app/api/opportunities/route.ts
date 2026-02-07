@@ -236,22 +236,29 @@ export async function GET(request: Request) {
             // Convert prediction_result from old string format to boolean
             const mainResult = toBooleanResult(pred.prediction_result);
 
-            // Calculate results for alternative predictions
-            const altPreds = (pred.alternative_predictions || []).map((alt: any) => {
-              const altName = alt.bet || alt.tahmin || '';
-              let altResult: boolean | null = null;
+            // Calculate results for alternative predictions (deduplicated)
+            const seenBets = new Set<string>();
+            const bestPredNorm = (pred.prediction || '').trim();
+            seenBets.add(bestPredNorm); // Skip alternatives that match best prediction
 
+            const altPreds: any[] = [];
+            for (const alt of (pred.alternative_predictions || [])) {
+              const altName = (alt.bet || alt.tahmin || '').trim();
+              if (!altName || seenBets.has(altName)) continue;
+              seenBets.add(altName);
+
+              let altResult: boolean | null = null;
               if (isFinished && homeScore !== null && awayScore !== null) {
                 altResult = checkAltPredictionResult(altName, homeScore, awayScore, htHome, htAway);
               }
 
-              return {
+              altPreds.push({
                 tahmin: altName,
                 güven: alt.confidence || alt.güven || 0,
                 not: alt.note || alt.not || '',
                 sonuç: altResult
-              };
-            });
+              });
+            }
 
             return {
               'Ev Sahibi': pred.home_team || '',
