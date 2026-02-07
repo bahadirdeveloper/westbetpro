@@ -6,6 +6,17 @@
  * OPTIMIZED: Directly fetches live scores from API-Football and updates
  * Supabase inline, eliminating dependency on slow cron job.
  * Throttled to max 1 API-Football call per 60 seconds.
+ *
+ * TELEGRAM DEDUPLICATION (v2):
+ * Uses Supabase `telegram_notified_at` column to persist sent notification types.
+ * Previous in-memory Set approach was unreliable on Vercel (cold starts reset it).
+ * Each prediction row now tracks: "upcoming,result_won,hot_0-1" etc.
+ *
+ * FIXES:
+ * - No more duplicate "FIRSAT MAC" notifications on every poll
+ * - No more duplicate "TUTTU/YATTI" on every cold start
+ * - Alternative hot alerts grouped into single message (not 5 separate ones)
+ * - Upcoming threshold raised from 75% to 85% to reduce noise
  */
 
 import { NextResponse } from 'next/server';
@@ -42,21 +53,6 @@ interface LiveAlert {
   matchedRules?: number[];
 }
 
-// In-memory cache for sent Telegram alerts (resets on cold start)
-const sentTelegramAlerts = new Set<string>();
-
-function shouldSendTelegram(alertKey: string): boolean {
-  if (sentTelegramAlerts.has(alertKey)) return false;
-  sentTelegramAlerts.add(alertKey);
-
-  // Clean old entries (keep last 500)
-  if (sentTelegramAlerts.size > 500) {
-    const entries = Array.from(sentTelegramAlerts);
-    entries.slice(0, 250).forEach(k => sentTelegramAlerts.delete(k));
-  }
-  return true;
-}
-
 function sendTelegramMessage(text: string, silent: boolean = false): Promise<void> {
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -76,15 +72,29 @@ function sendTelegramMessage(text: string, silent: boolean = false): Promise<voi
   });
 }
 
+// --- DB-backed notification deduplication ---
+
+function wasNotificationSent(pred: any, notifType: string): boolean {
+  const sent = pred.telegram_notified_at;
+  if (!sent || typeof sent !== 'string') return false;
+  return sent.split(',').includes(notifType);
+}
+
+function addNotificationType(currentValue: string | null, notifType: string): string {
+  if (!currentValue) return notifType;
+  const parts = currentValue.split(',');
+  if (parts.includes(notifType)) return currentValue;
+  parts.push(notifType);
+  return parts.join(',');
+}
+
 // --- Inline Live Score Fetcher ---
-// Throttle: fetch from API-Football at most once per 60 seconds
 let lastApiFetch = 0;
 let cachedFixtures: any[] = [];
 
 async function fetchLiveFixturesThrottled(): Promise<any[]> {
   const now = Date.now();
-  // Return cached if less than 60 seconds since last fetch
-  if (now - lastApiFetch < 60_000 && cachedFixtures.length >= 0) {
+  if (now - lastApiFetch < 60_000) {
     return cachedFixtures;
   }
 
@@ -157,13 +167,24 @@ async function updatePredictionsFromLiveData(predictions: any[], fixtures: any[]
       pred.is_finished === status.is_finished &&
       pred.elapsed === status.elapsed
     ) {
-      continue; // No change, skip update
+      continue;
     }
 
     let predictionResult: boolean | null = toBooleanResult(pred.prediction_result);
     if (status.is_finished && homeScore !== null && awayScore !== null && predictionResult === null) {
       predictionResult = checkPredictionResult(pred.prediction || '', homeScore, awayScore, halftimeHome, halftimeAway);
     }
+
+    // Update local pred object for downstream use
+    pred.is_live = status.is_live;
+    pred.is_finished = status.is_finished;
+    pred.live_status = status.live_status;
+    pred.elapsed = status.elapsed;
+    pred.home_score = homeScore;
+    pred.away_score = awayScore;
+    pred.halftime_home = halftimeHome;
+    pred.halftime_away = halftimeAway;
+    pred.prediction_result = predictionResult;
 
     const updatePromise = supabaseUpdate('predictions', pred.id, {
       is_live: status.is_live,
@@ -183,7 +204,6 @@ async function updatePredictionsFromLiveData(predictions: any[], fixtures: any[]
     updatePromises.push(updatePromise);
   }
 
-  // Run all updates in parallel (max 5 seconds)
   if (updatePromises.length > 0) {
     await Promise.race([
       Promise.allSettled(updatePromises),
@@ -199,7 +219,7 @@ export async function GET() {
     const today = getTodayDate();
     const yesterday = getYesterdayDate();
 
-    // Step 1: Fetch predictions from Supabase
+    // Step 1: Fetch predictions from Supabase (including telegram_notified_at)
     const [todayPredictions, yesterdayUnfinished] = await Promise.all([
       supabaseSelect('predictions', `match_date=eq.${today}&order=match_time.asc&select=*`),
       supabaseSelect('predictions', `match_date=eq.${yesterday}&is_finished=eq.false&order=match_time.asc&select=*`),
@@ -216,31 +236,21 @@ export async function GET() {
       });
     }
 
-    // Step 2: Fetch live scores directly from API-Football (throttled, 1x/60s)
+    // Step 2: Fetch live scores from API-Football (throttled, 1x/60s)
     const hasUnfinished = predictions.some((p: any) => !p.is_finished);
     let liveUpdatedCount = 0;
 
     if (hasUnfinished) {
       const liveFixtures = await fetchLiveFixturesThrottled();
-
       if (liveFixtures.length > 0) {
         liveUpdatedCount = await updatePredictionsFromLiveData(predictions, liveFixtures);
-
-        // If we updated data, re-read from Supabase for fresh values
-        if (liveUpdatedCount > 0) {
-          const [freshToday, freshYesterday] = await Promise.all([
-            supabaseSelect('predictions', `match_date=eq.${today}&order=match_time.asc&select=*`),
-            supabaseSelect('predictions', `match_date=eq.${yesterday}&is_finished=eq.false&order=match_time.asc&select=*`),
-          ]);
-          predictions.length = 0;
-          predictions.push(...(freshYesterday || []), ...(freshToday || []));
-        }
       }
     }
 
-    // Step 3: Build alerts from (now-fresh) predictions
+    // Step 3: Build alerts and queue Telegram notifications
     const alerts: LiveAlert[] = [];
     const telegramPromises: Promise<void>[] = [];
+    const notifUpdates: Array<{ id: string; newValue: string }> = [];
 
     for (const pred of predictions) {
       const homeScore = pred.home_score ?? null;
@@ -312,70 +322,93 @@ export async function GET() {
 
       alerts.push(alertItem);
 
-      // Queue Telegram for hot alerts (live matches, 1 goal away)
+      // --- TELEGRAM NOTIFICATIONS (DB-backed deduplication) ---
+
+      let currentNotifValue = pred.telegram_notified_at || '';
+
+      // 1. Hot alert: main prediction is 1 goal away (once per score state)
       if (isLive && mainAlert && mainAlert.alertLevel === 'hot' && !mainAlert.isAlreadyHit) {
-        const key = `${alertItem.id}_${alertItem.prediction}_${alertItem.currentScore}`;
-        if (shouldSendTelegram(key)) {
-          const msg = `🔥 <b>SICAK ALARM!</b>\n\n` +
+        const notifType = `hot_${homeScore}-${awayScore}`;
+        if (!wasNotificationSent(pred, notifType)) {
+          // Include hot alternatives in same message
+          const hotAlts = altAlerts
+            .filter(a => a.alertState?.alertLevel === 'hot' && !a.alertState?.isAlreadyHit)
+            .slice(0, 3);
+
+          let msg = `🔥 <b>SICAK ALARM!</b>\n\n` +
             `⚽ <b>${alertItem.homeTeam} - ${alertItem.awayTeam}</b>\n` +
             `📊 Skor: <b>${alertItem.currentScore}</b> (${alertItem.elapsed}')\n` +
             `🎯 Tahmin: <b>${alertItem.prediction}</b> (%${alertItem.confidence})\n` +
             `⚡ ${mainAlert.message || '1 GOL KALA!'}\n` +
             `🏆 ${alertItem.league}`;
+
+          if (hotAlts.length > 0) {
+            msg += `\n\n🔥 Diğer sıcak:\n` + hotAlts.map(a => `  • ${a.prediction} (%${a.confidence})`).join('\n');
+          }
+
           telegramPromises.push(sendTelegramMessage(msg));
+          currentNotifValue = addNotificationType(currentNotifValue, notifType);
+          currentNotifValue = addNotificationType(currentNotifValue, `alt_hot_${homeScore}-${awayScore}`);
         }
       }
+      // 2. Alternative hot alerts (only if main is NOT hot, to avoid duplicates)
+      else if (isLive && (!mainAlert || mainAlert.alertLevel !== 'hot')) {
+        const hotAlts = altAlerts.filter(a => a.alertState?.alertLevel === 'hot' && !a.alertState?.isAlreadyHit);
+        if (hotAlts.length > 0) {
+          const notifType = `alt_hot_${homeScore}-${awayScore}`;
+          if (!wasNotificationSent(pred, notifType)) {
+            const altLines = hotAlts
+              .slice(0, 4)
+              .map(a => `  • ${a.prediction} (%${a.confidence}) - ${a.alertState?.message || '1 GOL KALA!'}`);
 
-      // Also check alternative predictions for hot alerts
-      for (const alt of altAlerts) {
-        if (isLive && alt.alertState && alt.alertState.alertLevel === 'hot' && !alt.alertState.isAlreadyHit) {
-          const key = `${alertItem.id}_${alt.prediction}_${alertItem.currentScore}`;
-          if (shouldSendTelegram(key)) {
             const msg = `🔥 <b>SICAK ALARM!</b>\n\n` +
               `⚽ <b>${alertItem.homeTeam} - ${alertItem.awayTeam}</b>\n` +
               `📊 Skor: <b>${alertItem.currentScore}</b> (${alertItem.elapsed}')\n` +
-              `🎯 Tahmin: <b>${alt.prediction}</b> (%${alt.confidence})\n` +
-              `⚡ ${alt.alertState.message || '1 GOL KALA!'}\n` +
-              `🏆 ${alertItem.league}`;
+              `🏆 ${alertItem.league}\n\n` +
+              `🎯 Sıcak tahminler:\n${altLines.join('\n')}`;
+
             telegramPromises.push(sendTelegramMessage(msg));
+            currentNotifValue = addNotificationType(currentNotifValue, notifType);
           }
         }
       }
 
-      // Queue Telegram for upcoming matches (confidence >= 75%)
-      if (isUpcoming && alertItem.confidence >= 75) {
-        const key = `upcoming_${alertItem.id}`;
-        if (shouldSendTelegram(key)) {
-          const msg = `📋 <b>FIRSAT MAC!</b>\n\n` +
+      // 3. Upcoming: only high confidence (>= 85%), sent ONCE, silent
+      if (isUpcoming && alertItem.confidence >= 85) {
+        if (!wasNotificationSent(pred, 'upcoming')) {
+          const msg = `📋 <b>YÜKSEK GÜVEN TAHMİN!</b>\n\n` +
             `⚽ <b>${alertItem.homeTeam} - ${alertItem.awayTeam}</b>\n` +
             `⏰ Saat: <b>${alertItem.matchTime}</b>\n` +
             `🎯 Tahmin: <b>${alertItem.prediction}</b> (%${alertItem.confidence})\n` +
-            `🏆 ${alertItem.league}` +
-            (altAlerts.length > 0
-              ? `\n\n📊 Alternatifler:\n` + altAlerts.map(a => `  • ${a.prediction} (%${a.confidence})`).join('\n')
-              : '');
-          telegramPromises.push(sendTelegramMessage(msg));
+            `🏆 ${alertItem.league}`;
+          telegramPromises.push(sendTelegramMessage(msg, true));
+          currentNotifValue = addNotificationType(currentNotifValue, 'upcoming');
         }
       }
 
-      // Queue Telegram for finished match results
+      // 4. Finished result: sent ONCE
       if (isFinished && predResult !== null) {
-        const key = `result_${alertItem.id}`;
-        if (shouldSendTelegram(key)) {
-          const won = predResult === true;
-          const emoji = won ? '✅' : '❌';
-          const status = won ? 'TUTTU' : 'YATTI';
-          const msg = `${emoji} <b>SONUC: ${status}</b>\n\n` +
+        const notifType = predResult ? 'result_won' : 'result_lost';
+        if (!wasNotificationSent(pred, notifType)) {
+          const emoji = predResult ? '✅' : '❌';
+          const status = predResult ? 'TUTTU' : 'YATTI';
+          const msg = `${emoji} <b>SONUÇ: ${status}</b>\n\n` +
             `⚽ <b>${alertItem.homeTeam} - ${alertItem.awayTeam}</b>\n` +
             `📊 Skor: <b>${alertItem.currentScore}</b>\n` +
             `🎯 Tahmin: <b>${alertItem.prediction}</b> (%${alertItem.confidence})\n` +
             `🏆 ${alertItem.league}`;
-          telegramPromises.push(sendTelegramMessage(msg, !won));
+          telegramPromises.push(sendTelegramMessage(msg, !predResult));
+          currentNotifValue = addNotificationType(currentNotifValue, notifType);
         }
+      }
+
+      // Queue DB update if notification types changed
+      if (currentNotifValue !== (pred.telegram_notified_at || '')) {
+        notifUpdates.push({ id: pred.id, newValue: currentNotifValue });
       }
     }
 
-    // Sort: hot first, then warm, then live cold, then upcoming (by time), then finished
+    // Sort alerts
     alerts.sort((a, b) => {
       if (a.isFinished && !b.isFinished) return 1;
       if (!a.isFinished && b.isFinished) return -1;
@@ -390,7 +423,6 @@ export async function GET() {
       return (levelOrder[aLevel] ?? 3) - (levelOrder[bLevel] ?? 3);
     });
 
-    // Stats
     const stats = {
       hot: alerts.filter(a => a.isLive && a.alertState?.alertLevel === 'hot').length,
       warm: alerts.filter(a => a.isLive && a.alertState?.alertLevel === 'warm').length,
@@ -402,10 +434,19 @@ export async function GET() {
       lost: alerts.filter(a => a.isFinished && a.predictionResult === false).length,
     };
 
-    // Send all Telegram messages in parallel (non-blocking, max 5 seconds)
-    if (telegramPromises.length > 0) {
+    // Send Telegram + update notification tracking in DB (parallel, max 5s)
+    const allPromises: Promise<any>[] = [...telegramPromises];
+    for (const update of notifUpdates) {
+      allPromises.push(
+        supabaseUpdate('predictions', update.id, {
+          telegram_notified_at: update.newValue,
+        }).catch(() => {})
+      );
+    }
+
+    if (allPromises.length > 0) {
       await Promise.race([
-        Promise.allSettled(telegramPromises),
+        Promise.allSettled(allPromises),
         new Promise(resolve => setTimeout(resolve, 5000)),
       ]);
     }
