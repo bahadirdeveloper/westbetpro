@@ -203,12 +203,55 @@ export default function DashboardScreen() {
     return 'text-red-500';
   }
 
-  // Get emoji based on confidence
-  function getEmoji(confidence: number): string {
-    if (confidence >= 95) return '🤠';
-    if (confidence >= 90) return '🎯';
-    if (confidence >= 85) return '🔫';
-    return '🌵';
+  // Get all predictions for a match (best + alternatives)
+  function getAllPredictions(opp: Opportunity): Array<{tahmin: string; güven: number; not: string; sonuç?: boolean | null; isBest: boolean}> {
+    const all: Array<{tahmin: string; güven: number; not: string; sonuç?: boolean | null; isBest: boolean}> = [];
+
+    // Add best prediction first
+    all.push({
+      tahmin: opp.best_prediction,
+      güven: opp.best_confidence,
+      not: opp.note || '',
+      sonuç: opp.prediction_result,
+      isBest: true
+    });
+
+    // Add alternatives from alternatif_tahminler
+    if (opp.alternatif_tahminler && opp.alternatif_tahminler.length > 0) {
+      opp.alternatif_tahminler.forEach(alt => {
+        // Skip if same as best prediction
+        if (alt.tahmin === opp.best_prediction) return;
+        all.push({
+          tahmin: alt.tahmin,
+          güven: alt.güven,
+          not: alt.not || '',
+          sonuç: alt.sonuç,
+          isBest: false
+        });
+      });
+    } else if (opp.predictions && opp.predictions.length > 0) {
+      // Fallback to predictions array
+      opp.predictions.forEach(pred => {
+        if (pred.bet === opp.best_prediction) return;
+        all.push({
+          tahmin: pred.bet,
+          güven: pred.confidence,
+          not: pred.note || '',
+          sonuç: undefined,
+          isBest: false
+        });
+      });
+    }
+
+    return all;
+  }
+
+  // Get badge rank based on confidence
+  function getBadgeRank(confidence: number): { icon: string; label: string; color: string } | null {
+    if (confidence >= 95) return { icon: 'local_police', label: 'BASKOMISER', color: 'text-aged-gold' };
+    if (confidence >= 92) return { icon: 'shield', label: 'SERIF', color: 'text-primary' };
+    if (confidence >= 90) return { icon: 'verified_user', label: 'YARDIMCI', color: 'text-primary/70' };
+    return null;
   }
 
   // Get current time in Istanbul timezone (UTC+3)
@@ -555,10 +598,10 @@ export default function DashboardScreen() {
           {!loading && !error && opportunities.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
               {opportunities.map((opp, index) => {
-                const risk = getRiskLevel(opp.best_confidence);
-                const gaugeOffset = getGaugeOffset(opp.best_confidence);
+                const allPreds = getAllPredictions(opp);
+                const totalPredCount = allPreds.length;
+                const badge = getBadgeRank(opp.best_confidence);
                 const confidenceColor = getConfidenceColor(opp.best_confidence);
-                const emoji = getEmoji(opp.best_confidence);
 
                 return (
                   <div
@@ -569,19 +612,16 @@ export default function DashboardScreen() {
                         : 'border-white/5'
                     } relative overflow-hidden group hover:scale-[1.01] sm:hover:scale-[1.02] transition-transform`}
                   >
-                    {/* Emoji */}
-                    <div
-                      className={`absolute top-0 right-0 p-3 ${
-                        opp.best_confidence >= 95
-                          ? 'opacity-100'
-                          : 'opacity-20 group-hover:opacity-100'
-                      } transition-opacity`}
-                    >
-                      <span className="text-4xl">{emoji}</span>
-                    </div>
+                    {/* Sheriff Badge (top right) */}
+                    {badge && (
+                      <div className={`absolute top-3 right-3 flex flex-col items-center ${badge.color}`}>
+                        <span className="material-icons-round text-3xl sm:text-4xl drop-shadow-lg">{badge.icon}</span>
+                        <span className="text-[8px] font-bold tracking-wider mt-0.5 opacity-80">{badge.label}</span>
+                      </div>
+                    )}
 
                     {/* League & Status Badges */}
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    <div className="flex items-center gap-2 mb-3 flex-wrap pr-12">
                       <span className="text-[10px] px-2 py-1 bg-white/5 text-slate-400 rounded-md font-bold uppercase tracking-wider">
                         {opp.Lig}
                       </span>
@@ -598,7 +638,7 @@ export default function DashboardScreen() {
                     </div>
 
                     {/* Match Teams */}
-                    <h4 className="text-lg font-bold text-white mb-1">
+                    <h4 className="text-base sm:text-lg font-bold text-white mb-1 pr-10">
                       {opp['Ev Sahibi']} - {opp.Deplasman}
                     </h4>
 
@@ -619,48 +659,58 @@ export default function DashboardScreen() {
                       ) : null;
                     })()}
 
-                    {/* AI Prediction */}
-                    <p className="text-primary text-sm font-bold mb-4 neon-glow">
-                      AI TAHMİN: {opp.best_prediction}
-                    </p>
+                    {/* Prediction Count Badge */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${confidenceColor} bg-white/5`}>
+                        {totalPredCount} TAHMiN
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {opp.matched_rules?.length || 0} kural eslesti
+                      </span>
+                    </div>
 
-                    {/* Confidence Gauge */}
-                    <div className="flex items-center gap-6 mb-4">
-                      <div className="relative w-16 h-16 flex items-center justify-center">
-                        <svg className="w-full h-full -rotate-90">
-                          <circle
-                            className="text-white/5"
-                            cx="32"
-                            cy="32"
-                            fill="transparent"
-                            r="28"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <circle
-                            className={`${confidenceColor} gauge-circle`}
-                            cx="32"
-                            cy="32"
-                            fill="transparent"
-                            r="28"
-                            stroke="currentColor"
-                            strokeDasharray="176"
-                            strokeDashoffset={gaugeOffset}
-                            strokeWidth="4"
-                          />
-                        </svg>
-                        <span className="absolute text-xs font-bold">
-                          {opp.best_confidence}%
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                          Güven Puanı
-                        </p>
-                        <p className="text-xs text-slate-400 italic">
-                          {opp.matched_rules.length} kural eşleşti
-                        </p>
-                      </div>
+                    {/* ALL Predictions List */}
+                    <div className="space-y-1.5 mb-3">
+                      {allPreds.map((pred, pIdx) => {
+                        const predColor = getConfidenceColor(pred.güven);
+                        const isFinished = opp.is_finished;
+
+                        return (
+                          <div
+                            key={pIdx}
+                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-sm ${
+                              pred.isBest
+                                ? 'bg-primary/10 border border-primary/20'
+                                : 'bg-white/5 border border-white/5'
+                            } ${
+                              isFinished && pred.sonuç === true
+                                ? '!border-green-500/30 !bg-green-500/5'
+                                : isFinished && pred.sonuç === false
+                                ? '!border-red-500/30 !bg-red-500/5'
+                                : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              {pred.isBest && (
+                                <span className="material-icons-round text-primary text-sm flex-shrink-0">star</span>
+                              )}
+                              <span className={`font-bold truncate ${pred.isBest ? 'text-white' : 'text-slate-300'}`}>
+                                {pred.tahmin}
+                              </span>
+                              {/* Result indicator for finished matches */}
+                              {isFinished && pred.sonuç === true && (
+                                <span className="text-green-400 text-xs flex-shrink-0">✓</span>
+                              )}
+                              {isFinished && pred.sonuç === false && (
+                                <span className="text-red-400 text-xs flex-shrink-0">✗</span>
+                              )}
+                            </div>
+                            <span className={`text-xs font-bold ${predColor} flex-shrink-0`}>
+                              %{pred.güven}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Match Date & Time */}
@@ -682,7 +732,7 @@ export default function DashboardScreen() {
                           : 'bg-saddle-brown hover:bg-saddle-brown/90'
                       } text-white text-xs font-bold rounded-lg tracking-widest uppercase transition-all`}
                     >
-                      DETAYLARI GÖR
+                      DETAYLARI GOR
                     </button>
                   </div>
                 );
