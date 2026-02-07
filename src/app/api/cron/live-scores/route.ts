@@ -336,10 +336,11 @@ export async function GET(request: Request) {
       const halftimeHome = matchedFixture.score?.halftime?.home ?? null;
       const halftimeAway = matchedFixture.score?.halftime?.away ?? null;
 
-      let predictionResult = pred.prediction_result;
-      // Convert old string format to boolean if needed
-      if (predictionResult === 'won') predictionResult = true;
-      else if (predictionResult === 'lost') predictionResult = false;
+      // Convert prediction_result from all possible formats to boolean
+      let predictionResult: boolean | null = null;
+      const rawResult = pred.prediction_result;
+      if (rawResult === true || rawResult === 'won' || rawResult === 'true') predictionResult = true;
+      else if (rawResult === false || rawResult === 'lost' || rawResult === 'false') predictionResult = false;
 
       if (status.is_finished && homeScore !== null && awayScore !== null && predictionResult === null) {
         predictionResult = checkPredictionResult(pred.prediction || '', homeScore, awayScore, halftimeHome, halftimeAway);

@@ -17,8 +17,8 @@ import { join } from 'path';
 
 // Convert prediction_result from various formats to boolean
 function toBooleanResult(val: any): boolean | null {
-  if (val === true || val === 'won') return true;
-  if (val === false || val === 'lost') return false;
+  if (val === true || val === 'won' || val === 'true') return true;
+  if (val === false || val === 'lost' || val === 'false') return false;
   return null;
 }
 
