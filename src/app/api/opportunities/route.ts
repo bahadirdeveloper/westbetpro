@@ -15,6 +15,62 @@ import { NextResponse } from 'next/server';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
+// Convert prediction_result from various formats to boolean
+function toBooleanResult(val: any): boolean | null {
+  if (val === true || val === 'won') return true;
+  if (val === false || val === 'lost') return false;
+  return null;
+}
+
+// Check prediction result for alternative predictions
+function checkAltPredictionResult(prediction: string, homeScore: number | null, awayScore: number | null, halftimeHome?: number | null, halftimeAway?: number | null): boolean | null {
+  if (homeScore === null || homeScore === undefined || awayScore === null || awayScore === undefined) return null;
+
+  const totalGoals = homeScore + awayScore;
+  const pred = prediction
+    .replace(/İ/g, 'I')
+    .replace(/ı/g, 'i')
+    .replace(/ü/g, 'U')
+    .replace(/Ü/g, 'U')
+    .toUpperCase()
+    .trim();
+
+  // MS (Match result) predictions
+  if (pred === 'MS 1') return homeScore > awayScore;
+  if (pred === 'MS 2') return awayScore > homeScore;
+  if (pred === 'MS X') return homeScore === awayScore;
+
+  // KG (Both teams to score)
+  if (pred === 'KG VAR') return homeScore > 0 && awayScore > 0;
+  if (pred === 'KG YOK') return homeScore === 0 || awayScore === 0;
+
+  // MS Over/Under
+  const msOverMatch = pred.match(/^(?:MS\s+)?(\d+\.?\d*)\s*UST$/);
+  if (msOverMatch) return totalGoals > parseFloat(msOverMatch[1]);
+
+  const msUnderMatch = pred.match(/^(?:MS\s+)?(\d+\.?\d*)\s*ALT$/);
+  if (msUnderMatch) return totalGoals < parseFloat(msUnderMatch[1]);
+
+  // IY (First half) predictions
+  if (halftimeHome !== null && halftimeHome !== undefined && halftimeAway !== null && halftimeAway !== undefined) {
+    const htTotal = halftimeHome + halftimeAway;
+
+    const iyOverMatch = pred.match(/^IY\s+(\d+\.?\d*)\s*UST$/);
+    if (iyOverMatch) return htTotal > parseFloat(iyOverMatch[1]);
+
+    const iyUnderMatch = pred.match(/^IY\s+(\d+\.?\d*)\s*ALT$/);
+    if (iyUnderMatch) return htTotal < parseFloat(iyUnderMatch[1]);
+
+    if (pred === 'IY MS 1') return halftimeHome > halftimeAway;
+    if (pred === 'IY MS 2') return halftimeAway > halftimeHome;
+    if (pred === 'IY MS X') return halftimeHome === halftimeAway;
+    if (pred === 'IY KG VAR') return halftimeHome > 0 && halftimeAway > 0;
+    if (pred === 'IY KG YOK') return halftimeHome === 0 || halftimeAway === 0;
+  }
+
+  return null;
+}
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
@@ -107,7 +163,7 @@ function transformOpportunity(opp: any, index: number): any | null {
       'elapsed': opp['elapsed'] ?? null,
       'is_live': opp['is_live'] || false,
       'is_finished': opp['is_finished'] || false,
-      'prediction_result': opp['prediction_result'] ?? null
+      'prediction_result': toBooleanResult(opp['prediction_result'])
     };
   } else {
     const raw = opp._raw || {};
@@ -170,37 +226,61 @@ export async function GET(request: Request) {
         );
 
         if (data && data.length > 0) {
-          opportunities = data.map((pred: any) => ({
-            'Ev Sahibi': pred.home_team || '',
-            'Deplasman': pred.away_team || '',
-            'Lig': pred.league || '',
-            'Tarih': formatDateTurkish(pred.match_date || targetDate),
-            'Saat': pred.match_time || '',
-            'best_prediction': pred.prediction || '',
-            'best_confidence': pred.confidence || 0,
-            'alternatif_tahminler': (pred.alternative_predictions || []).map((alt: any) => ({
-              tahmin: alt.bet || alt.tahmin || '',
-              güven: alt.confidence || alt.güven || 0,
-              not: alt.note || alt.not || ''
-            })),
-            'eşleşen_kurallar': (pred.matched_rules || []).map((r: any) => ({
-              kural_id: r.rule_id || r.kural_id || '',
-              kural_adı: r.rule_name || r.kural_adı || ''
-            })),
-            'toplam_tahmin_sayısı': (pred.alternative_predictions || []).length + 1,
-            'predictions': pred.alternative_predictions || [],
-            'matched_rules': pred.matched_rules || [],
-            'note': pred.note || '',
-            'live_status': pred.live_status || 'not_started',
-            'home_score': pred.home_score ?? null,
-            'away_score': pred.away_score ?? null,
-            'halftime_home': pred.halftime_home ?? null,
-            'halftime_away': pred.halftime_away ?? null,
-            'elapsed': pred.elapsed ?? null,
-            'is_live': pred.is_live || false,
-            'is_finished': pred.is_finished || false,
-            'prediction_result': pred.prediction_result ?? null
-          }));
+          opportunities = data.map((pred: any) => {
+            const isFinished = pred.is_finished || false;
+            const homeScore = pred.home_score ?? null;
+            const awayScore = pred.away_score ?? null;
+            const htHome = pred.halftime_home ?? null;
+            const htAway = pred.halftime_away ?? null;
+
+            // Convert prediction_result from old string format to boolean
+            const mainResult = toBooleanResult(pred.prediction_result);
+
+            // Calculate results for alternative predictions
+            const altPreds = (pred.alternative_predictions || []).map((alt: any) => {
+              const altName = alt.bet || alt.tahmin || '';
+              let altResult: boolean | null = null;
+
+              if (isFinished && homeScore !== null && awayScore !== null) {
+                altResult = checkAltPredictionResult(altName, homeScore, awayScore, htHome, htAway);
+              }
+
+              return {
+                tahmin: altName,
+                güven: alt.confidence || alt.güven || 0,
+                not: alt.note || alt.not || '',
+                sonuç: altResult
+              };
+            });
+
+            return {
+              'Ev Sahibi': pred.home_team || '',
+              'Deplasman': pred.away_team || '',
+              'Lig': pred.league || '',
+              'Tarih': formatDateTurkish(pred.match_date || targetDate),
+              'Saat': pred.match_time || '',
+              'best_prediction': pred.prediction || '',
+              'best_confidence': pred.confidence || 0,
+              'alternatif_tahminler': altPreds,
+              'eşleşen_kurallar': (pred.matched_rules || []).map((r: any) => ({
+                kural_id: r.rule_id || r.kural_id || '',
+                kural_adı: r.rule_name || r.kural_adı || ''
+              })),
+              'toplam_tahmin_sayısı': altPreds.length + 1,
+              'predictions': pred.alternative_predictions || [],
+              'matched_rules': pred.matched_rules || [],
+              'note': pred.note || '',
+              'live_status': pred.live_status || 'not_started',
+              'home_score': homeScore,
+              'away_score': awayScore,
+              'halftime_home': htHome,
+              'halftime_away': htAway,
+              'elapsed': pred.elapsed ?? null,
+              'is_live': pred.is_live || false,
+              'is_finished': isFinished,
+              'prediction_result': mainResult
+            };
+          });
         }
       } catch (e: any) {
         console.error('Supabase REST fetch error:', e.message);

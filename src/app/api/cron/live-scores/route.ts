@@ -156,33 +156,67 @@ function determineMatchStatus(fixture: any) {
   return { is_live: false, is_finished: false, live_status: 'not_started', elapsed: null };
 }
 
-function checkPredictionResult(prediction: string, homeScore: number, awayScore: number): string | null {
+// Returns boolean: true = won, false = lost, null = unknown/unrecognized
+function checkPredictionResult(prediction: string, homeScore: number, awayScore: number, halftimeHome?: number | null, halftimeAway?: number | null): boolean | null {
   if (homeScore === null || awayScore === null) return null;
 
   const totalGoals = homeScore + awayScore;
-  const pred = prediction.toUpperCase().trim();
+  // Normalize Turkish chars for matching
+  const pred = prediction
+    .replace(/İ/g, 'I')
+    .replace(/ı/g, 'i')
+    .replace(/ü/g, 'U')
+    .replace(/Ü/g, 'U')
+    .toUpperCase()
+    .trim();
 
-  if (pred === 'MS 1' && homeScore > awayScore) return 'won';
-  if (pred === 'MS 1' && homeScore <= awayScore) return 'lost';
-  if (pred === 'MS 2' && awayScore > homeScore) return 'won';
-  if (pred === 'MS 2' && awayScore <= homeScore) return 'lost';
-  if (pred === 'MS X' && homeScore === awayScore) return 'won';
-  if (pred === 'MS X' && homeScore !== awayScore) return 'lost';
-  if (pred === 'KG VAR' && homeScore > 0 && awayScore > 0) return 'won';
-  if (pred === 'KG VAR' && (homeScore === 0 || awayScore === 0)) return 'lost';
-  if (pred === 'KG YOK' && (homeScore === 0 || awayScore === 0)) return 'won';
-  if (pred === 'KG YOK' && homeScore > 0 && awayScore > 0) return 'lost';
+  // MS (Match result) predictions
+  if (pred === 'MS 1') return homeScore > awayScore;
+  if (pred === 'MS 2') return awayScore > homeScore;
+  if (pred === 'MS X') return homeScore === awayScore;
 
-  const overMatch = pred.match(/^(?:MS\s+)?(\d+\.?\d*)\s*[UÜ]ST$/i);
-  if (overMatch) {
-    const line = parseFloat(overMatch[1]);
-    return totalGoals > line ? 'won' : 'lost';
+  // KG (Both teams to score)
+  if (pred === 'KG VAR') return homeScore > 0 && awayScore > 0;
+  if (pred === 'KG YOK') return homeScore === 0 || awayScore === 0;
+
+  // MS Over/Under (full time total goals)
+  const msOverMatch = pred.match(/^(?:MS\s+)?(\d+\.?\d*)\s*UST$/);
+  if (msOverMatch) {
+    const line = parseFloat(msOverMatch[1]);
+    return totalGoals > line;
   }
 
-  const underMatch = pred.match(/^(?:MS\s+)?(\d+\.?\d*)\s*ALT$/i);
-  if (underMatch) {
-    const line = parseFloat(underMatch[1]);
-    return totalGoals < line ? 'won' : 'lost';
+  const msUnderMatch = pred.match(/^(?:MS\s+)?(\d+\.?\d*)\s*ALT$/);
+  if (msUnderMatch) {
+    const line = parseFloat(msUnderMatch[1]);
+    return totalGoals < line;
+  }
+
+  // IY (First half) predictions
+  if (halftimeHome !== null && halftimeHome !== undefined && halftimeAway !== null && halftimeAway !== undefined) {
+    const htTotal = halftimeHome + halftimeAway;
+
+    // IY Over/Under
+    const iyOverMatch = pred.match(/^IY\s+(\d+\.?\d*)\s*UST$/);
+    if (iyOverMatch) {
+      const line = parseFloat(iyOverMatch[1]);
+      return htTotal > line;
+    }
+
+    const iyUnderMatch = pred.match(/^IY\s+(\d+\.?\d*)\s*ALT$/);
+    if (iyUnderMatch) {
+      const line = parseFloat(iyUnderMatch[1]);
+      return htTotal < line;
+    }
+
+    // IY MS (first half result)
+    if (pred === 'IY MS 1') return halftimeHome > halftimeAway;
+    if (pred === 'IY MS 2') return halftimeAway > halftimeHome;
+    if (pred === 'IY MS X') return halftimeHome === halftimeAway;
+
+    // IY KG
+    if (pred === 'IY KG VAR') return halftimeHome > 0 && halftimeAway > 0;
+    if (pred === 'IY KG YOK') return halftimeHome === 0 || halftimeAway === 0;
   }
 
   return null;
@@ -287,22 +321,12 @@ export async function GET(request: Request) {
       const halftimeAway = matchedFixture.score?.halftime?.away ?? null;
 
       let predictionResult = pred.prediction_result;
-      if (status.is_finished && homeScore !== null && awayScore !== null && !predictionResult) {
-        predictionResult = checkPredictionResult(pred.prediction || '', homeScore, awayScore);
+      // Convert old string format to boolean if needed
+      if (predictionResult === 'won') predictionResult = true;
+      else if (predictionResult === 'lost') predictionResult = false;
 
-        // Handle IY (first half) predictions with halftime data
-        if (!predictionResult && halftimeHome !== null && halftimeAway !== null) {
-          const p = (pred.prediction || '').toUpperCase().trim();
-          const htTotal = halftimeHome + halftimeAway;
-          const iyOver = p.match(/^[İI]Y\s+(\d+\.?\d*)\s*[UÜ]ST$/);
-          if (iyOver) {
-            predictionResult = htTotal > parseFloat(iyOver[1]) ? 'won' : 'lost';
-          }
-          const iyUnder = p.match(/^[İI]Y\s+(\d+\.?\d*)\s*ALT$/);
-          if (iyUnder) {
-            predictionResult = htTotal < parseFloat(iyUnder[1]) ? 'won' : 'lost';
-          }
-        }
+      if (status.is_finished && homeScore !== null && awayScore !== null && predictionResult === null) {
+        predictionResult = checkPredictionResult(pred.prediction || '', homeScore, awayScore, halftimeHome, halftimeAway);
       }
 
       // Update via direct REST API (bypasses RLS issues with JS client)
