@@ -42,7 +42,7 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
 
   return (
     <>
-      {/* More menu popup */}
+      {/* More menu popup overlay */}
       {moreOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40"
@@ -50,68 +50,71 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
         />
       )}
 
+      {/* Native app-style bottom tab bar - full width, stuck to bottom */}
       <nav
-        className="lg:hidden fixed left-3 right-3 sm:left-auto sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-card-dark/95 backdrop-blur-xl border border-white/10 px-3 sm:px-6 py-2.5 sm:py-3 rounded-2xl sm:rounded-full flex items-center justify-around sm:justify-center sm:gap-6 shadow-2xl shadow-black/50 z-50"
-        style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        className="lg:hidden fixed bottom-0 left-0 right-0 bg-card-dark/95 backdrop-blur-xl border-t border-white/10 z-50"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        {mainItems.map((item) => {
-          const isActive = activeTab === item.id;
-          return (
-            <Link
-              key={item.id}
-              href={item.path}
-              className={`flex flex-col items-center gap-0.5 relative transition-colors ${isActive ? 'text-primary' : 'text-slate-500 hover:text-slate-300'}`}
+        <div className="flex items-center justify-around px-2 py-2">
+          {mainItems.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <Link
+                key={item.id}
+                href={item.path}
+                className={`flex flex-col items-center gap-0.5 py-1 px-3 relative transition-colors ${isActive ? 'text-primary' : 'text-slate-500 active:text-slate-300'}`}
+              >
+                {isActive && (
+                  <span className="absolute -top-2 w-5 h-0.5 rounded-full bg-primary" />
+                )}
+                <span className={`material-icons-round text-[22px] ${isActive ? 'drop-shadow-[0_0_6px_rgba(0,255,102,0.3)]' : ''}`}>{item.icon}</span>
+                <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+              </Link>
+            );
+          })}
+
+          {/* More / Tools button */}
+          <div ref={moreRef} className="relative">
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={`flex flex-col items-center gap-0.5 py-1 px-3 relative transition-colors ${isMoreActive ? 'text-primary' : 'text-slate-500 active:text-slate-300'}`}
             >
-              {isActive && (
-                <span className="absolute -top-2.5 w-5 h-0.5 rounded-full bg-primary" />
+              {isMoreActive && (
+                <span className="absolute -top-2 w-5 h-0.5 rounded-full bg-primary" />
               )}
-              <span className={`material-icons-round text-xl sm:text-2xl ${isActive ? 'drop-shadow-[0_0_6px_rgba(0,255,102,0.3)]' : ''}`}>{item.icon}</span>
-              <span className={`text-[9px] sm:text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
-            </Link>
-          );
-        })}
+              <span className={`material-icons-round text-[22px] ${isMoreActive ? 'drop-shadow-[0_0_6px_rgba(0,255,102,0.3)]' : ''}`}>
+                {moreOpen ? 'close' : 'more_horiz'}
+              </span>
+              <span className={`text-[10px] ${isMoreActive ? 'font-bold' : 'font-medium'}`}>Daha</span>
+            </button>
 
-        {/* More / Tools button */}
-        <div ref={moreRef} className="relative">
-          <button
-            onClick={() => setMoreOpen(!moreOpen)}
-            className={`flex flex-col items-center gap-0.5 relative transition-colors ${isMoreActive ? 'text-primary' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            {isMoreActive && (
-              <span className="absolute -top-2.5 w-5 h-0.5 rounded-full bg-primary" />
-            )}
-            <span className={`material-icons-round text-xl sm:text-2xl ${isMoreActive ? 'drop-shadow-[0_0_6px_rgba(0,255,102,0.3)]' : ''}`}>
-              {moreOpen ? 'close' : 'more_horiz'}
-            </span>
-            <span className={`text-[9px] sm:text-[10px] ${isMoreActive ? 'font-bold' : 'font-medium'}`}>Daha</span>
-          </button>
-
-          {/* Popup */}
-          {moreOpen && (
-            <div className="absolute bottom-full mb-3 right-0 min-w-[200px] bg-card-dark/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/60 overflow-hidden">
-              <div className="px-3 py-2 border-b border-white/5">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kovboy Aletleri</span>
+            {/* Popup */}
+            {moreOpen && (
+              <div className="absolute bottom-full mb-3 right-0 min-w-[200px] bg-card-dark/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/60 overflow-hidden">
+                <div className="px-3 py-2 border-b border-white/5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kovboy Aletleri</span>
+                </div>
+                {moreItems.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.path}
+                      className={`flex items-center gap-3 px-4 py-3 transition-all ${
+                        isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <span className="material-icons-round text-lg">{item.icon}</span>
+                      <span className="text-sm font-medium">{item.label}</span>
+                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+                    </Link>
+                  );
+                })}
               </div>
-              {moreItems.map((item) => {
-                const isActive = activeTab === item.id;
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.path}
-                    className={`flex items-center gap-3 px-4 py-3 transition-all ${
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <span className="material-icons-round text-lg">{item.icon}</span>
-                    <span className="text-sm font-medium">{item.label}</span>
-                    {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </nav>
     </>
