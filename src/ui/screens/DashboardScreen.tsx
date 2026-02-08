@@ -80,6 +80,7 @@ export default function DashboardScreen() {
   const [selectedDate, setSelectedDate] = useState<'yesterday' | 'today' | 'tomorrow' | 'day_after_tomorrow'>('today');
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [istanbulTime, setIstanbulTime] = useState<string>('');
+  const [showFinished, setShowFinished] = useState(false);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -587,11 +588,16 @@ export default function DashboardScreen() {
           )}
 
           {/* Match Cards - REAL DATA ONLY */}
-          {!loading && !error && opportunities.length > 0 && (
+          {!loading && !error && opportunities.length > 0 && (() => {
+            const activeOpps = opportunities.filter(o => !o.is_finished);
+            const finishedOpps = opportunities.filter(o => o.is_finished);
+
+            return (
+              <>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
-              {[...opportunities].sort((a, b) => {
-                // Live first, then not-started, then finished
-                const priority = (o: Opportunity) => o.is_live ? 0 : o.is_finished ? 2 : 1;
+              {[...activeOpps].sort((a, b) => {
+                // Live first, then not-started
+                const priority = (o: Opportunity) => o.is_live ? 0 : 1;
                 const diff = priority(a) - priority(b);
                 if (diff !== 0) return diff;
                 return b.best_confidence - a.best_confidence;
@@ -766,7 +772,163 @@ export default function DashboardScreen() {
                 );
               })}
             </div>
-          )}
+
+            {/* Finished Matches - Collapsible Section */}
+            {finishedOpps.length > 0 && (
+              <div className="mt-8">
+                <button
+                  onClick={() => setShowFinished(!showFinished)}
+                  className="flex items-center gap-2 mb-4 group"
+                >
+                  <span className="material-icons-round text-slate-500 text-lg">check_circle</span>
+                  <h3 className="text-lg font-western text-slate-500 uppercase tracking-wider">
+                    Tamamlanan Maclar
+                  </h3>
+                  <span className="text-xs font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded">
+                    {finishedOpps.length}
+                  </span>
+                  <span className="material-icons-round text-slate-500 text-sm transition-transform group-hover:text-slate-300" style={{ transform: showFinished ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                    expand_more
+                  </span>
+                  {(() => {
+                    const won = finishedOpps.filter(o => o.prediction_result === true).length;
+                    const lost = finishedOpps.filter(o => o.prediction_result === false).length;
+                    return (
+                      <span className="text-xs font-bold">
+                        {won > 0 && <span className="text-green-400">{won} tuttu</span>}
+                        {won > 0 && lost > 0 && <span className="text-slate-600 mx-1">·</span>}
+                        {lost > 0 && <span className="text-red-400">{lost} yatti</span>}
+                      </span>
+                    );
+                  })()}
+                </button>
+                {showFinished && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6 opacity-70">
+                    {[...finishedOpps].sort((a, b) => b.best_confidence - a.best_confidence).map((opp, index) => {
+                const allPreds = getAllPredictions(opp);
+                const totalPredCount = allPreds.length;
+                const badge = getBadgeRank(opp.best_confidence);
+                const confidenceColor = getConfidenceColor(opp.best_confidence);
+
+                return (
+                  <div
+                    key={`finished-${index}`}
+                    onClick={() => setSelectedOpportunity(opp)}
+                    className={`bg-card-dark p-4 sm:p-5 rounded-2xl border cursor-pointer ${
+                      opp.prediction_result === true ? 'border-green-500/20' :
+                      opp.prediction_result === false ? 'border-red-500/20' :
+                      'border-white/5'
+                    } relative overflow-hidden group hover:-translate-y-1 transition-all duration-200 hover:shadow-lg hover:shadow-black/20`}
+                  >
+                    {badge && (
+                      <div className={`absolute top-3 right-3 flex flex-col items-center ${badge.color}`}>
+                        <span className="material-icons-round text-3xl sm:text-4xl drop-shadow-lg">{badge.icon}</span>
+                        <span className="text-[8px] font-bold tracking-wider mt-0.5 opacity-80">{badge.label}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mb-3 flex-wrap pr-12">
+                      <span className="text-[10px] px-2 py-1 bg-white/5 text-slate-400 rounded-md font-bold uppercase tracking-wider">
+                        {opp.Lig}
+                      </span>
+                      {(() => {
+                        const statusBadge = getStatusBadge(opp);
+                        return statusBadge ? (
+                          <span className={`text-[10px] px-2 py-1 ${statusBadge.color} rounded-md font-bold uppercase tracking-wider`}>
+                            {statusBadge.text}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+
+                    <h4 className="text-base sm:text-lg font-bold text-white mb-1 pr-10">
+                      {opp['Ev Sahibi']} - {opp.Deplasman}
+                    </h4>
+
+                    {(() => {
+                      const scoreData = getScoreText(opp);
+                      return scoreData ? (
+                        <div className="mb-2">
+                          <p className="text-aged-gold text-xl font-bold">{scoreData.full}</p>
+                          {scoreData.halftime && <p className="text-slate-400 text-sm mt-1">{scoreData.halftime}</p>}
+                        </div>
+                      ) : null;
+                    })()}
+
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${confidenceColor} bg-white/5`}>
+                        {totalPredCount} TAHMiN
+                      </span>
+                      {(() => {
+                        const won = allPreds.filter(p => p.sonuç === true).length;
+                        const evaluated = allPreds.filter(p => p.sonuç === true || p.sonuç === false).length;
+                        if (evaluated === 0) return <span className="text-[10px] text-slate-500">sonuc hesaplaniyor...</span>;
+                        const allWon = won === evaluated;
+                        return (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${allWon ? 'text-green-400 bg-green-500/10' : 'text-aged-gold bg-aged-gold/10'}`}>
+                            {won}/{evaluated} TUTTU
+                          </span>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="space-y-1.5 mb-3">
+                      {allPreds.map((pred, pIdx) => {
+                        const predColor = getConfidenceColor(pred.güven);
+                        return (
+                          <div
+                            key={pIdx}
+                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-sm ${
+                              pred.isBest ? 'bg-primary/10 border border-primary/20' : 'bg-white/5 border border-white/5'
+                            } ${
+                              pred.sonuç === true ? '!border-green-500/30 !bg-green-500/5' :
+                              pred.sonuç === false ? '!border-red-500/30 !bg-red-500/5' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              {pred.isBest && <span className="material-icons-round text-primary text-sm flex-shrink-0">star</span>}
+                              <span className={`font-bold truncate ${pred.isBest ? 'text-white' : 'text-slate-300'}`}>{pred.tahmin}</span>
+                              {pred.sonuç === true && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
+                              {pred.sonuç === false && <span className="text-red-400 text-xs flex-shrink-0">✗</span>}
+                            </div>
+                            <span className={`text-xs font-bold ${predColor} flex-shrink-0`}>%{pred.güven}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
+                      <span className="material-icons-round text-xs">schedule</span>
+                      <span>{opp.Tarih} • {opp.Saat}</span>
+                    </div>
+
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedOpportunity(opp); }}
+                      className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5 text-xs font-bold rounded-lg tracking-widest uppercase transition-all"
+                    >
+                      DETAYLARI GOR
+                    </button>
+                  </div>
+                );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Empty state when no active matches left */}
+            {activeOpps.length === 0 && finishedOpps.length > 0 && (
+              <div className="flex justify-center items-center py-12">
+                <div className="text-center max-w-md">
+                  <span className="material-icons-round text-5xl text-slate-600 mb-3 block">check_circle</span>
+                  <h3 className="text-xl font-western text-white mb-2">Tum Maclar Tamamlandi</h3>
+                  <p className="text-slate-400 text-sm">Bugunun tum firsat maclari sona erdi. Sonuclari asagida gorebilirsiniz.</p>
+                </div>
+              </div>
+            )}
+              </>
+            );
+          })()}
         </section>
       </main>
 
