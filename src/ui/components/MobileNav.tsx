@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export default function MobileNav({ activeTab }: { activeTab: string }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [visible, setVisible] = useState(true);
   const moreRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
   const pathname = usePathname();
 
   const mainItems = [
@@ -23,9 +25,10 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
 
   const isMoreActive = moreItems.some(item => item.id === activeTab);
 
-  // Close popup on route change
+  // Close popup on route change & show nav
   useEffect(() => {
     setMoreOpen(false);
+    setVisible(true);
   }, [pathname]);
 
   // Close popup on outside click
@@ -40,6 +43,41 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [moreOpen]);
 
+  // Hide on scroll down, show on scroll up
+  const handleScroll = useCallback(() => {
+    const currentY = window.scrollY;
+    const diff = currentY - lastScrollY.current;
+
+    // Don't hide if popup is open
+    if (moreOpen) {
+      lastScrollY.current = currentY;
+      return;
+    }
+
+    // At top of page - always show
+    if (currentY < 50) {
+      setVisible(true);
+      lastScrollY.current = currentY;
+      return;
+    }
+
+    // Scroll down more than 10px -> hide
+    if (diff > 10) {
+      setVisible(false);
+    }
+    // Scroll up more than 5px -> show
+    else if (diff < -5) {
+      setVisible(true);
+    }
+
+    lastScrollY.current = currentY;
+  }, [moreOpen]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
   return (
     <>
       {/* More menu popup overlay */}
@@ -50,10 +88,14 @@ export default function MobileNav({ activeTab }: { activeTab: string }) {
         />
       )}
 
-      {/* Native app-style bottom tab bar - full width, stuck to bottom */}
+      {/* Native app-style bottom tab bar with auto-hide on scroll */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 bg-card-dark/95 backdrop-blur-xl border-t border-white/10 z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="lg:hidden fixed left-0 right-0 bg-card-dark/95 backdrop-blur-xl border-t border-white/10 z-50 transition-transform duration-300 ease-out"
+        style={{
+          bottom: 0,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        }}
       >
         <div className="flex items-center justify-around px-2 py-2">
           {mainItems.map((item) => {

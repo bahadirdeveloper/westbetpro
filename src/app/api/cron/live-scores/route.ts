@@ -75,11 +75,25 @@ async function fetchFixturesByDate(date: string): Promise<any[]> {
 
 // --- Main handler ---
 
+function verifyAuth(request: Request): boolean {
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  const cronSecret = process.env.CRON_SECRET || '';
+
+  // Check CRON_SECRET
+  if (cronSecret && token === cronSecret) return true;
+
+  // Check admin JWT
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role === 'admin' && payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: Request) {
-  // Verify cron secret (Vercel cron sets this automatically)
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
