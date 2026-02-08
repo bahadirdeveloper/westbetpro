@@ -66,7 +66,7 @@ function isLost(result: any): boolean {
 }
 
 function getPredType(pred: string): string {
-  const p = pred.toUpperCase().trim();
+  const p = (pred || '').toUpperCase().trim();
   if (p.startsWith('İY') || p.startsWith('IY')) return 'IY';
   if (p.includes('KG')) return 'KG';
   if (p.includes('ÜST') || p.includes('UST') || p.includes('ALT')) return 'ÜSTALT';
@@ -210,7 +210,7 @@ export async function GET(request: Request) {
     // 5b. Specific prediction patterns (exact prediction text)
     const predMap: Record<string, { total: number; won: number; lost: number; samples: PredictionRecord[] }> = {};
     for (const p of finished) {
-      const pred = p.prediction.trim();
+      const pred = (p.prediction || '').trim();
       if (!predMap[pred]) predMap[pred] = { total: 0, won: 0, lost: 0, samples: [] };
       predMap[pred].total++;
       if (isWon(p.prediction_result)) predMap[pred].won++;

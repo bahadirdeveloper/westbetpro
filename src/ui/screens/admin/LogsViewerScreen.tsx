@@ -98,11 +98,13 @@ export default function LogsViewerScreen() {
       label: 'Detaylar',
       render: (details: any) => (
         <div className="max-w-xs sm:max-w-md overflow-x-auto">
-          {typeof details === 'string' ? (
+          {!details ? (
+            <span className="text-sm text-slate-500">—</span>
+          ) : typeof details === 'string' ? (
             <span className="text-sm text-slate-400 truncate block">{details}</span>
           ) : (
             <pre className="text-xs text-slate-400 whitespace-pre-wrap break-all">
-              {JSON.stringify(details, null, 2).substring(0, 100)}...
+              {(JSON.stringify(details, null, 2) || '').substring(0, 100)}...
             </pre>
           )}
         </div>
