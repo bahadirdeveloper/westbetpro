@@ -57,6 +57,13 @@ export default function RuleDiscoveryScreen() {
       const res = await fetch('/api/engine/discover-rules', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
+      if (!res.ok) {
+        const text = await res.text();
+        let errMsg = `HTTP ${res.status}`;
+        try { errMsg = JSON.parse(text).error || errMsg; } catch { errMsg = text.substring(0, 100) || errMsg; }
+        setResult({ success: false, total_analyzed: 0, overall_success_rate: 0, patterns: [], rule_performance: [], source_stats: [], confidence_stats: [], type_stats: [], insights: [], error: errMsg });
+        return;
+      }
       const data = await res.json();
       setResult(data);
     } catch (e: any) {

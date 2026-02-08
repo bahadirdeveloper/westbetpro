@@ -41,8 +41,10 @@ export default function MatchesViewerScreen() {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.error || `Hata: ${response.status}`);
+        const text = await response.text();
+        let errMsg = `Hata: ${response.status}`;
+        try { errMsg = JSON.parse(text).error || errMsg; } catch { errMsg = text.substring(0, 100) || errMsg; }
+        setError(errMsg);
         return;
       }
 

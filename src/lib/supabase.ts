@@ -12,7 +12,10 @@ export function getSupabaseConfig() {
 }
 
 export async function supabaseSelect(table: string, params: string): Promise<any[]> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return [];
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error(`supabaseSelect: Missing SUPABASE_URL or SUPABASE_KEY`);
+    return [];
+  }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
     headers: {
@@ -22,7 +25,11 @@ export async function supabaseSelect(table: string, params: string): Promise<any
     },
     cache: 'no-store',
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    console.error(`supabaseSelect(${table}): ${res.status} ${errText.substring(0, 200)}`);
+    return [];
+  }
   return res.json();
 }
 

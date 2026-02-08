@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
     const today = getTodayDate();
 
-    let params = `select=id,home_team,away_team,league,match_date,match_time,home_score,away_score,is_live,is_finished,prediction,confidence&order=match_date.desc,match_time.asc&limit=${limit}`;
+    let params = `select=*&order=match_date.desc,match_time.asc&limit=${limit}`;
 
     if (filterType === 'today') {
       params += `&match_date=eq.${today}`;

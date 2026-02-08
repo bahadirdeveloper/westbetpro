@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     const data = await supabaseSelect(
       'predictions',
-      `select=id,home_team,away_team,league,match_date,match_time,prediction,confidence,prediction_result,is_finished,is_live,matched_rules,alternative_predictions,source,note&order=match_date.desc,match_time.desc&limit=${limit}`
+      `select=*&order=match_date.desc,match_time.desc&limit=${limit}`
     );
 
     const predictions = (data || []).map((p: any) => {

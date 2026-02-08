@@ -46,6 +46,13 @@ export default function EngineControlScreen() {
           'Authorization': `Bearer ${token}`,
         },
       });
+      if (!res.ok) {
+        const text = await res.text();
+        let errMsg = `HTTP ${res.status}`;
+        try { errMsg = JSON.parse(text).error || errMsg; } catch { errMsg = text.substring(0, 100) || errMsg; }
+        setResult({ success: false, error: errMsg });
+        return;
+      }
       const data = await res.json();
       setResult(data);
     } catch (e: any) {
@@ -63,6 +70,13 @@ export default function EngineControlScreen() {
       const res = await fetch('/api/cron/live-scores', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
+      if (!res.ok) {
+        const text = await res.text();
+        let errMsg = `HTTP ${res.status}`;
+        try { errMsg = JSON.parse(text).error || errMsg; } catch { errMsg = text.substring(0, 100) || errMsg; }
+        setCronResult({ success: false, error: errMsg });
+        return;
+      }
       const data = await res.json();
       setCronResult(data);
     } catch (e: any) {
