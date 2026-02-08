@@ -115,7 +115,7 @@ export default function LogsViewerScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-western text-3xl text-aged-gold mb-2">SİSTEM LOGLARI</h1>
+        <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">SİSTEM LOGLARI</h1>
         <p className="text-slate-400">Sistem olaylarını izle ve filtrele</p>
       </div>
 
@@ -148,14 +148,14 @@ export default function LogsViewerScreen() {
       </div>
 
       {/* Filters */}
-      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex gap-2">
+      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
             {['', 'INFO', 'WARNING', 'ERROR'].map((lvl) => (
               <button
                 key={lvl || 'all'}
                 onClick={() => setLevel(lvl)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all flex-shrink-0 ${
                   level === lvl
                     ? 'bg-primary text-white'
                     : 'bg-white/5 text-slate-400 hover:bg-white/10'
@@ -166,7 +166,7 @@ export default function LogsViewerScreen() {
             ))}
           </div>
 
-          <div className="ml-auto flex items-center gap-4">
+          <div className="sm:ml-auto flex items-center gap-3 sm:gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -174,12 +174,12 @@ export default function LogsViewerScreen() {
                 onChange={(e) => setAutoRefresh(e.target.checked)}
                 className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary"
               />
-              <span className="text-sm text-slate-400">Otomatik Yenile (5s)</span>
+              <span className="text-xs sm:text-sm text-slate-400">Oto Yenile</span>
             </label>
 
             <button
               onClick={() => fetchLogs()}
-              className="bg-white/5 hover:bg-white/10 text-slate-400 px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+              className="bg-white/5 hover:bg-white/10 text-slate-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-2 text-xs sm:text-sm"
             >
               <span className="material-icons-round text-sm">refresh</span>
               Yenile

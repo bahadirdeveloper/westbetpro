@@ -305,7 +305,7 @@ export default function RulePerformanceScreen() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-western text-3xl text-aged-gold mb-2">ALTIN KURALLAR</h1>
+          <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">ALTIN KURALLAR</h1>
           <p className="text-slate-400">Golden Rules yonetimi ve duzenlemesi</p>
         </div>
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 sm:p-8 text-center">
@@ -371,7 +371,7 @@ CREATE POLICY "Allow service role full access"
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-western text-3xl text-aged-gold mb-2">ALTIN KURALLAR</h1>
+          <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">ALTIN KURALLAR</h1>
           <p className="text-slate-400">Golden Rules yonetimi - {rules.length} kural</p>
         </div>
         <div className="flex items-center gap-3">

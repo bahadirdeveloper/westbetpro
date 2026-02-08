@@ -123,20 +123,20 @@ export default function MatchesViewerScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-western text-3xl text-aged-gold mb-2">MAÇLAR</h1>
+        <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">MAÇLAR</h1>
         <p className="text-slate-400">Tüm maçları görüntüle ve filtrele</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-6">
-        <div className="flex flex-wrap gap-4">
+      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
           {/* Tab Filters */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2">
             {(['today', 'upcoming', 'finished'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
                   filterType === type
                     ? 'bg-primary text-white'
                     : 'bg-white/5 text-slate-400 hover:bg-white/10'
@@ -151,7 +151,7 @@ export default function MatchesViewerScreen() {
           <select
             value={league}
             onChange={(e) => setLeague(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white"
+            className="bg-white/5 border border-white/10 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-white text-xs sm:text-sm"
           >
             <option value="">Tüm Ligler</option>
             {leagues.map((l) => (
@@ -160,7 +160,7 @@ export default function MatchesViewerScreen() {
           </select>
 
           {/* Match Count */}
-          <div className="ml-auto flex items-center gap-2 text-sm text-slate-400">
+          <div className="sm:ml-auto flex items-center gap-2 text-xs sm:text-sm text-slate-400">
             <span className="material-icons-round text-sm">sports_soccer</span>
             <span>{matches.length} maç</span>
           </div>

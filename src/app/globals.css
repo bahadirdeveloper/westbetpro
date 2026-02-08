@@ -12,6 +12,16 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+/* Admin main content: mobile top bar space */
+.admin-main-content {
+  padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 1024px) {
+  .admin-main-content {
+    padding-top: 0;
+  }
+}
+
 /* Standalone mode specific adjustments */
 @media all and (display-mode: standalone) {
   /* Header: absorb top notch/dynamic island */

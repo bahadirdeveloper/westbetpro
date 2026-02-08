@@ -94,6 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
+    { id: 'engine', icon: 'engineering', label: 'Motor Kontrol', href: '/admin/engine' },
     { id: 'excel-upload', icon: 'upload_file', label: 'Excel Yükle', href: '/admin/excel-upload' },
     { id: 'rules', icon: 'rule', label: 'Altin Kurallar', href: '/admin/rules' },
     { id: 'rule-discovery', icon: 'psychology', label: 'Kural Keşfi', href: '/admin/rule-discovery' },
@@ -114,7 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <AdminSidebar />
 
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card-dark/95 backdrop-blur-xl border-b border-aged-gold/20">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card-dark/95 backdrop-blur-xl border-b border-aged-gold/20" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="material-icons-round text-primary text-xl">shield</span>
@@ -142,7 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="border-t border-white/10 bg-card-dark">
+          <div className="border-t border-white/10 bg-card-dark max-h-[70vh] overflow-y-auto">
             <nav className="px-2 py-2 space-y-1">
               {navItems.map((item) => (
                 <Link
@@ -180,8 +181,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
       )}
 
-      {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-14 lg:pt-0">
+      {/* Main Content - mobilde top bar + safe-area, desktop'ta sidebar */}
+      <main className="lg:ml-64 min-h-screen admin-main-content">
         {/* Desktop header */}
         <div className="hidden lg:block">
           <header className="glass-nav border-b border-white/5 sticky top-0 z-40 px-6 py-3 flex items-center justify-between">

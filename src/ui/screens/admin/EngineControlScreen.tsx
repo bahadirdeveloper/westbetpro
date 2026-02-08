@@ -119,12 +119,12 @@ export default function EngineControlScreen() {
           <div className="space-y-1.5">
             <p className="text-slate-400 text-xs font-bold">Örnek Sonuçlar:</p>
             {result.sample_results.map((s, i) => (
-              <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 text-xs">
-                <div>
-                  <p className="text-white font-medium">{s.match}</p>
-                  <p className="text-slate-500">{s.league} • {s.time}</p>
+              <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 bg-white/5 rounded-lg px-3 py-2 text-xs">
+                <div className="min-w-0">
+                  <p className="text-white font-medium truncate">{s.match}</p>
+                  <p className="text-slate-500 truncate">{s.league} • {s.time}</p>
                 </div>
-                <div className="text-right">
+                <div className="sm:text-right flex-shrink-0">
                   <p className="text-primary font-bold">{s.prediction}</p>
                   <p className="text-slate-400">%{s.confidence} • {s.rules_matched} kural</p>
                 </div>
@@ -144,7 +144,7 @@ export default function EngineControlScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-western text-3xl text-aged-gold mb-2">MOTOR KONTROLÜ</h1>
+        <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">MOTOR KONTROLÜ</h1>
         <p className="text-slate-400">API-Football otonom analiz motoru ve canlı skor güncellemesi</p>
       </div>
 
@@ -161,7 +161,7 @@ export default function EngineControlScreen() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Today */}
           <div className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div>
                 <p className="font-bold text-white">Bugünü Analiz Et</p>
                 <p className="text-xs text-slate-400">Bugünün maçlarının oranlarını çek</p>
@@ -169,7 +169,7 @@ export default function EngineControlScreen() {
               <button
                 onClick={() => runAnalyze('today')}
                 disabled={todayLoading}
-                className="bg-primary hover:bg-primary/90 text-black px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-black px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 {todayLoading ? (
                   <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black"></span>
@@ -184,7 +184,7 @@ export default function EngineControlScreen() {
 
           {/* Tomorrow */}
           <div className="bg-white/5 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div>
                 <p className="font-bold text-white">Yarını Analiz Et</p>
                 <p className="text-xs text-slate-400">Yarının maçlarının oranlarını çek</p>
@@ -192,7 +192,7 @@ export default function EngineControlScreen() {
               <button
                 onClick={() => runAnalyze('tomorrow')}
                 disabled={tomorrowLoading}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 {tomorrowLoading ? (
                   <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
@@ -213,7 +213,7 @@ export default function EngineControlScreen() {
           <span className="material-icons-round text-green-400">sports_soccer</span>
           Canlı Skor Güncelleyici
         </h3>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p className="text-slate-400 text-sm">Canlı skorları API-Football&apos;dan çek ve tahmin sonuçlarını güncelle</p>
             <p className="text-slate-500 text-xs mt-1">Not: Bu işlem cron ile 2 dakikada bir otomatik çalışır</p>
@@ -221,7 +221,7 @@ export default function EngineControlScreen() {
           <button
             onClick={runLiveScores}
             disabled={cronLoading}
-            className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0"
           >
             {cronLoading ? (
               <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>

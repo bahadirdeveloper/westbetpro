@@ -14,9 +14,9 @@ interface DataTableProps {
 export default function DataTable({ columns, data, onRowClick, emptyMessage = 'Veri bulunamadı' }: DataTableProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-12 text-center">
-        <span className="material-icons-round text-slate-600 text-5xl mb-3 inline-block">inbox</span>
-        <p className="text-slate-400">{emptyMessage}</p>
+      <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-6 sm:p-12 text-center">
+        <span className="material-icons-round text-slate-600 text-4xl sm:text-5xl mb-3 inline-block">inbox</span>
+        <p className="text-slate-400 text-sm">{emptyMessage}</p>
       </div>
     );
   }
@@ -30,7 +30,7 @@ export default function DataTable({ columns, data, onRowClick, emptyMessage = 'V
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="text-left px-6 py-4 text-sm font-bold text-slate-300 uppercase tracking-wider"
+                  className="text-left px-3 sm:px-6 py-2.5 sm:py-4 text-xs sm:text-sm font-bold text-slate-300 uppercase tracking-wider whitespace-nowrap"
                 >
                   {column.label}
                 </th>
@@ -48,7 +48,7 @@ export default function DataTable({ columns, data, onRowClick, emptyMessage = 'V
                 `}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-6 py-4 text-sm text-slate-300">
+                  <td key={column.key} className="px-3 sm:px-6 py-2.5 sm:py-4 text-xs sm:text-sm text-slate-300">
                     {column.render ? column.render(row[column.key], row) : row[column.key]}
                   </td>
                 ))}

@@ -90,7 +90,7 @@ export default function RuleDiscoveryScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-western text-3xl text-aged-gold mb-2">KURAL KEŞFİ</h1>
+        <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">KURAL KEŞFİ</h1>
         <p className="text-slate-400">Geçmiş tahmin verilerini analiz ederek yeni kural adayları ve performans örüntüleri keşfet</p>
       </div>
 
@@ -140,46 +140,46 @@ export default function RuleDiscoveryScreen() {
       {result && result.success && (
         <div className="space-y-6">
           {/* Overview */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-4 text-center">
-              <span className="material-icons-round text-primary text-xl mb-1 block">query_stats</span>
-              <p className="text-2xl font-bold text-white">{result.total_analyzed}</p>
-              <p className="text-slate-500 text-xs">Analiz Edilen</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-3 sm:p-4 text-center">
+              <span className="material-icons-round text-primary text-lg sm:text-xl mb-1 block">query_stats</span>
+              <p className="text-lg sm:text-2xl font-bold text-white">{result.total_analyzed}</p>
+              <p className="text-slate-500 text-[10px] sm:text-xs">Analiz Edilen</p>
             </div>
-            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-4 text-center">
-              <span className="material-icons-round text-aged-gold text-xl mb-1 block">percent</span>
-              <p className="text-2xl font-bold text-white">%{result.overall_success_rate}</p>
-              <p className="text-slate-500 text-xs">Genel Başarı</p>
+            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-3 sm:p-4 text-center">
+              <span className="material-icons-round text-aged-gold text-lg sm:text-xl mb-1 block">percent</span>
+              <p className="text-lg sm:text-2xl font-bold text-white">%{result.overall_success_rate}</p>
+              <p className="text-slate-500 text-[10px] sm:text-xs">Genel Başarı</p>
             </div>
-            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-4 text-center">
-              <span className="material-icons-round text-blue-400 text-xl mb-1 block">pattern</span>
-              <p className="text-2xl font-bold text-white">{result.patterns.length}</p>
-              <p className="text-slate-500 text-xs">Keşfedilen Örüntü</p>
+            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-3 sm:p-4 text-center">
+              <span className="material-icons-round text-blue-400 text-lg sm:text-xl mb-1 block">pattern</span>
+              <p className="text-lg sm:text-2xl font-bold text-white">{result.patterns.length}</p>
+              <p className="text-slate-500 text-[10px] sm:text-xs">Keşfedilen Örüntü</p>
             </div>
-            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-4 text-center">
-              <span className="material-icons-round text-green-400 text-xl mb-1 block">rule</span>
-              <p className="text-2xl font-bold text-white">{result.rule_performance.length}</p>
-              <p className="text-slate-500 text-xs">Aktif Kural</p>
+            <div className="bg-card-dark border border-aged-gold/10 rounded-xl p-3 sm:p-4 text-center">
+              <span className="material-icons-round text-green-400 text-lg sm:text-xl mb-1 block">rule</span>
+              <p className="text-lg sm:text-2xl font-bold text-white">{result.rule_performance.length}</p>
+              <p className="text-slate-500 text-[10px] sm:text-xs">Aktif Kural</p>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
             {[
               { key: 'insights', label: 'Öngörüler', icon: 'lightbulb' },
               { key: 'patterns', label: 'Örüntüler', icon: 'pattern' },
-              { key: 'rules', label: 'Kural Performansı', icon: 'rule' },
+              { key: 'rules', label: 'Kural Perf.', icon: 'rule' },
             ].map(t => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
                   tab === t.key
                     ? 'bg-primary/10 text-primary border border-primary/30'
                     : 'bg-white/5 text-slate-400 border border-white/5 hover:border-white/10'
                 }`}
               >
-                <span className="material-icons-round text-sm">{t.icon}</span>
+                <span className="material-icons-round text-xs sm:text-sm">{t.icon}</span>
                 {t.label}
               </button>
             ))}

@@ -87,7 +87,7 @@ export default function ExcelUploadScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-western text-3xl text-aged-gold mb-2">EXCEL YÜKLEME</h1>
+        <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">EXCEL YÜKLEME</h1>
         <p className="text-slate-400">Açılış oranları Excel dosyasını yükleyin, sistem golden rules ile eşleştirip tahminleri otomatik oluşturur.</p>
       </div>
 
@@ -98,7 +98,7 @@ export default function ExcelUploadScreen() {
         onDrop={onDrop}
         onClick={() => fileRef.current?.click()}
         className={`
-          border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all
+          border-2 border-dashed rounded-xl p-6 sm:p-8 md:p-12 text-center cursor-pointer transition-all
           ${dragOver
             ? 'border-primary bg-primary/10'
             : 'border-aged-gold/30 hover:border-primary/50 hover:bg-primary/5'

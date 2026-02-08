@@ -160,10 +160,10 @@ export default function AdminDashboardScreen() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-western text-3xl text-aged-gold mb-2">DASHBOARD</h1>
-          <p className="text-slate-400">Sistem genel durumu ve istatistikler</p>
+          <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">DASHBOARD</h1>
+          <p className="text-slate-400 text-sm">Sistem genel durumu ve istatistikler</p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
@@ -180,7 +180,7 @@ export default function AdminDashboardScreen() {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         <StatCard
           icon="analytics"
           label="Toplam Tahmin"
@@ -208,45 +208,45 @@ export default function AdminDashboardScreen() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-card-dark border border-green-500/20 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="material-icons-round text-green-400">check_circle</span>
-            <span className="text-2xl font-bold text-green-400">{overview.won}</span>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="bg-card-dark border border-green-500/20 rounded-xl p-3 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="material-icons-round text-green-400 text-lg sm:text-2xl">check_circle</span>
+            <span className="text-xl sm:text-2xl font-bold text-green-400">{overview.won}</span>
           </div>
-          <p className="text-sm text-slate-400">Kazanilan</p>
+          <p className="text-xs sm:text-sm text-slate-400">Kazanilan</p>
         </div>
 
-        <div className="bg-card-dark border border-red-500/20 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="material-icons-round text-red-400">cancel</span>
-            <span className="text-2xl font-bold text-red-400">{overview.lost}</span>
+        <div className="bg-card-dark border border-red-500/20 rounded-xl p-3 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="material-icons-round text-red-400 text-lg sm:text-2xl">cancel</span>
+            <span className="text-xl sm:text-2xl font-bold text-red-400">{overview.lost}</span>
           </div>
-          <p className="text-sm text-slate-400">Kaybedilen</p>
+          <p className="text-xs sm:text-sm text-slate-400">Kaybedilen</p>
         </div>
 
-        <div className="bg-card-dark border border-yellow-500/20 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="material-icons-round text-yellow-400">pending</span>
-            <span className="text-2xl font-bold text-yellow-400">{overview.pending_predictions}</span>
+        <div className="bg-card-dark border border-yellow-500/20 rounded-xl p-3 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="material-icons-round text-yellow-400 text-lg sm:text-2xl">pending</span>
+            <span className="text-xl sm:text-2xl font-bold text-yellow-400">{overview.pending_predictions}</span>
           </div>
-          <p className="text-sm text-slate-400">Bekleyen</p>
+          <p className="text-xs sm:text-sm text-slate-400">Bekleyen</p>
         </div>
 
-        <div className="bg-card-dark border border-blue-500/20 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="material-icons-round text-blue-400">live_tv</span>
-            <span className="text-2xl font-bold text-blue-400">{overview.live_matches}</span>
+        <div className="bg-card-dark border border-blue-500/20 rounded-xl p-3 sm:p-6">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <span className="material-icons-round text-blue-400 text-lg sm:text-2xl">live_tv</span>
+            <span className="text-xl sm:text-2xl font-bold text-blue-400">{overview.live_matches}</span>
           </div>
-          <p className="text-sm text-slate-400">Canli Mac</p>
+          <p className="text-xs sm:text-sm text-slate-400">Canli Mac</p>
         </div>
       </div>
 
       {/* Quick Actions & 7 Day Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-6">
-          <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+        <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-4 sm:p-6">
+          <h3 className="font-bold text-base sm:text-lg text-white mb-3 sm:mb-4 flex items-center gap-2">
             <span className="material-icons-round text-primary">settings</span>
             Hizli Islemler
           </h3>

@@ -130,7 +130,7 @@ export default function PredictionsViewerScreen() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-western text-3xl text-aged-gold mb-2">TAHMİNLER</h1>
+        <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">TAHMİNLER</h1>
         <p className="text-slate-400">Tüm tahminleri görüntüle ve detayları incele</p>
       </div>
 
