@@ -14,24 +14,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseSelect } from '@/lib/supabase';
-
-const CRON_SECRET = process.env.CRON_SECRET || '';
-
-function verifyAuth(request: Request): boolean {
-  const authHeader = request.headers.get('authorization') || '';
-  const token = authHeader.replace('Bearer ', '');
-
-  if (token === CRON_SECRET && CRON_SECRET) return true;
-
-  // Check admin token
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role === 'admin' && payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-}
+import { supabaseSelect, verifyAdminAuth } from '@/lib/supabase';
 
 interface PredictionRecord {
   prediction: string;
@@ -92,7 +75,7 @@ function getPredType(pred: string): string {
 }
 
 export async function GET(request: Request) {
-  if (!verifyAuth(request)) {
+  if (!(await verifyAdminAuth(request))) {
     return NextResponse.json({ success: false, error: 'Yetkisiz erişim' }, { status: 401 });
   }
 

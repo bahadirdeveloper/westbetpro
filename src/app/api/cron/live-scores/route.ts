@@ -9,7 +9,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseSelect, supabaseUpdate } from '@/lib/supabase';
+import { supabaseSelect, supabaseUpdate, verifyAdminAuth } from '@/lib/supabase';
 import { getTodayDate, getYesterdayDate } from '@/lib/dates';
 import { checkPredictionResult, toBooleanResult } from '@/lib/predictions';
 import { teamsMatch } from '@/lib/teams';
@@ -75,25 +75,8 @@ async function fetchFixturesByDate(date: string): Promise<any[]> {
 
 // --- Main handler ---
 
-function verifyAuth(request: Request): boolean {
-  const authHeader = request.headers.get('authorization') || '';
-  const token = authHeader.replace('Bearer ', '');
-  const cronSecret = process.env.CRON_SECRET || '';
-
-  // Check CRON_SECRET
-  if (cronSecret && token === cronSecret) return true;
-
-  // Check admin JWT
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role === 'admin' && payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-}
-
 export async function GET(request: Request) {
-  if (!verifyAuth(request)) {
+  if (!(await verifyAdminAuth(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

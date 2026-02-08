@@ -10,23 +10,24 @@ interface Match {
   league: string;
   date: string;
   time: string;
-  home_odds: number;
-  draw_odds: number;
-  away_odds: number;
   status: string;
+  home_score: number | null;
+  away_score: number | null;
+  prediction: string;
+  confidence: number;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function MatchesViewerScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<'upcoming' | 'today' | 'finished'>('upcoming');
+  const [error, setError] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<'upcoming' | 'today' | 'finished'>('today');
   const [league, setLeague] = useState<string>('');
   const [leagues, setLeagues] = useState<string[]>([]);
 
   const fetchMatches = async () => {
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('admin_token');
       const params = new URLSearchParams({
@@ -35,20 +36,24 @@ export default function MatchesViewerScreen() {
       });
       if (league) params.append('league', league);
 
-      const response = await fetch(`${API_BASE}/api/matches?${params}`, {
+      const response = await fetch(`/api/matches?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
+      if (!response.ok) {
         const data = await response.json();
-        setMatches(data.matches || []);
-
-        // Extract unique leagues
-        const uniqueLeagues = [...new Set(data.matches.map((m: Match) => m.league))];
-        setLeagues(uniqueLeagues as string[]);
+        setError(data.error || `Hata: ${response.status}`);
+        return;
       }
-    } catch (err) {
-      console.error('Failed to fetch matches:', err);
+
+      const data = await response.json();
+      setMatches(data.matches || []);
+
+      // Extract unique leagues
+      const uniqueLeagues = [...new Set((data.matches || []).map((m: Match) => m.league).filter(Boolean))];
+      setLeagues(uniqueLeagues as string[]);
+    } catch (err: any) {
+      setError(err.message || 'Bağlantı hatası');
     } finally {
       setLoading(false);
     }
@@ -64,8 +69,8 @@ export default function MatchesViewerScreen() {
       label: 'Tarih',
       render: (date: string, row: Match) => (
         <div>
-          <div className="font-medium">{new Date(date).toLocaleDateString('tr-TR')}</div>
-          <div className="text-xs text-slate-500">{row.time}</div>
+          <div className="font-medium">{date ? new Date(date).toLocaleDateString('tr-TR') : '-'}</div>
+          <div className="text-xs text-slate-500">{row.time || ''}</div>
         </div>
       )
     },
@@ -74,9 +79,9 @@ export default function MatchesViewerScreen() {
       label: 'Maç',
       render: (home: string, row: Match) => (
         <div className="font-medium">
-          <div>{home}</div>
-          <div className="text-slate-400">vs</div>
-          <div>{row.away_team}</div>
+          <span>{home}</span>
+          <span className="text-slate-500 mx-1">vs</span>
+          <span>{row.away_team}</span>
         </div>
       )
     },
@@ -88,49 +93,44 @@ export default function MatchesViewerScreen() {
       )
     },
     {
-      key: 'home_odds',
-      label: 'Oranlar (1-X-2)',
-      render: (homeOdds: number, row: Match) => (
-        <div className="flex gap-2">
-          <span className="bg-green-500/10 text-green-400 px-2 py-1 rounded text-xs font-mono">
-            {homeOdds?.toFixed(2) || '-'}
-          </span>
-          <span className="bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded text-xs font-mono">
-            {row.draw_odds?.toFixed(2) || '-'}
-          </span>
-          <span className="bg-red-500/10 text-red-400 px-2 py-1 rounded text-xs font-mono">
-            {row.away_odds?.toFixed(2) || '-'}
-          </span>
+      key: 'prediction',
+      label: 'Tahmin',
+      render: (prediction: string, row: Match) => prediction ? (
+        <div>
+          <span className="text-primary font-bold text-sm">{prediction}</span>
+          <span className="text-slate-400 text-xs ml-1">%{row.confidence}</span>
         </div>
-      )
+      ) : <span className="text-slate-600">-</span>
     },
     {
       key: 'status',
       label: 'Durum',
-      render: (status: string) => (
-        <span className={`text-xs px-2 py-1 rounded ${
-          status === 'upcoming' ? 'bg-blue-500/10 text-blue-400' :
-          status === 'live' ? 'bg-green-500/10 text-green-400' :
-          'bg-slate-500/10 text-slate-400'
-        }`}>
-          {status === 'upcoming' ? 'Yaklaşan' : status === 'live' ? 'Canlı' : 'Bitti'}
-        </span>
+      render: (status: string, row: Match) => (
+        <div>
+          <span className={`text-xs px-2 py-1 rounded ${
+            status === 'upcoming' ? 'bg-blue-500/10 text-blue-400' :
+            status === 'live' ? 'bg-green-500/10 text-green-400' :
+            'bg-slate-500/10 text-slate-400'
+          }`}>
+            {status === 'upcoming' ? 'Yaklaşan' : status === 'live' ? 'Canlı' : 'Bitti'}
+          </span>
+          {(status === 'finished' || status === 'live') && row.home_score !== null && (
+            <span className="text-aged-gold font-bold text-sm ml-2">{row.home_score}-{row.away_score}</span>
+          )}
+        </div>
       )
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="font-western text-2xl sm:text-3xl text-aged-gold mb-1 sm:mb-2">MAÇLAR</h1>
         <p className="text-slate-400">Tüm maçları görüntüle ve filtrele</p>
       </div>
 
-      {/* Filters */}
       <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-3 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-          {/* Tab Filters */}
           <div className="flex gap-1.5 sm:gap-2">
             {(['today', 'upcoming', 'finished'] as const).map((type) => (
               <button
@@ -147,7 +147,6 @@ export default function MatchesViewerScreen() {
             ))}
           </div>
 
-          {/* League Filter */}
           <select
             value={league}
             onChange={(e) => setLeague(e.target.value)}
@@ -159,7 +158,6 @@ export default function MatchesViewerScreen() {
             ))}
           </select>
 
-          {/* Match Count */}
           <div className="sm:ml-auto flex items-center gap-2 text-xs sm:text-sm text-slate-400">
             <span className="material-icons-round text-sm">sports_soccer</span>
             <span>{matches.length} maç</span>
@@ -167,7 +165,12 @@ export default function MatchesViewerScreen() {
         </div>
       </div>
 
-      {/* Matches Table */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <p className="text-red-400 font-bold text-sm">Hata: {error}</p>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">

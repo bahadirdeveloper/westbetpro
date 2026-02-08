@@ -11,30 +11,34 @@ interface Log {
   details: any;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-
 export default function LogsViewerScreen() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState<string>('');
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   const fetchLogs = async () => {
+    setError(null);
     try {
       const token = localStorage.getItem('admin_token');
       const params = new URLSearchParams({ limit: '100' });
       if (level) params.append('level', level);
 
-      const response = await fetch(`${API_BASE}/api/logs?${params}`, {
+      const response = await fetch(`/api/logs?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
+      if (!response.ok) {
         const data = await response.json();
-        setLogs(data.logs || []);
+        setError(data.error || `Hata: ${response.status}`);
+        return;
       }
-    } catch (err) {
-      console.error('Failed to fetch logs:', err);
+
+      const data = await response.json();
+      setLogs(data.logs || []);
+    } catch (err: any) {
+      setError(err.message || 'Bağlantı hatası');
     } finally {
       setLoading(false);
     }
@@ -120,7 +124,7 @@ export default function LogsViewerScreen() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-slate-400 text-sm">Toplam</span>
@@ -187,6 +191,12 @@ export default function LogsViewerScreen() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <p className="text-red-400 font-bold text-sm">Hata: {error}</p>
+        </div>
+      )}
 
       {/* Logs Table */}
       {loading ? (

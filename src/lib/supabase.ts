@@ -51,6 +51,39 @@ export async function supabaseUpdate(
   return { ok: false, status: res.status };
 }
 
+/**
+ * Verify admin auth from API request.
+ * Accepts either CRON_SECRET or a valid Supabase JWT.
+ */
+export async function verifyAdminAuth(request: Request): Promise<boolean> {
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.replace('Bearer ', '');
+  if (!token) return false;
+
+  // Check CRON_SECRET
+  const cronSecret = process.env.CRON_SECRET || '';
+  if (cronSecret && token === cronSecret) return true;
+
+  // Validate JWT via Supabase Auth API
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return false;
+
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': supabaseKey,
+      },
+    });
+    if (!res.ok) return false;
+    const user = await res.json();
+    return !!user?.id;
+  } catch {
+    return false;
+  }
+}
+
 export async function supabaseInsert(
   table: string,
   data: Record<string, any> | Record<string, any>[],

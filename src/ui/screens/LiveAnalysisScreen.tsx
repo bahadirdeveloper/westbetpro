@@ -132,11 +132,13 @@ export default function LiveAnalysisScreen() {
     return () => { isMounted = false; clearInterval(interval); };
   }, [playAlertSound]);
 
-  const hotAlerts = alerts.filter(a => a.isLive && a.alertState?.alertLevel === 'hot');
-  const warmAlerts = alerts.filter(a => a.isLive && a.alertState?.alertLevel === 'warm');
-  const liveMatches = alerts.filter(a => a.isLive && (!a.alertState || a.alertState.alertLevel === 'cold'));
+  // 90+ dk olan maçlar API-Football henüz FT dememiş olsa bile pratikte bitmiş - sıcak/yakın alarmlardan çıkar
+  const isEffectivelyFinished = (a: LiveAlert) => a.isFinished || (a.isLive && a.elapsed >= 90);
+  const hotAlerts = alerts.filter(a => a.isLive && !isEffectivelyFinished(a) && a.alertState?.alertLevel === 'hot');
+  const warmAlerts = alerts.filter(a => a.isLive && !isEffectivelyFinished(a) && a.alertState?.alertLevel === 'warm');
+  const liveMatches = alerts.filter(a => a.isLive && !isEffectivelyFinished(a) && (!a.alertState || a.alertState.alertLevel === 'cold'));
   const upcomingMatches = alerts.filter(a => a.isUpcoming);
-  const finishedMatches = alerts.filter(a => a.isFinished);
+  const finishedMatches = alerts.filter(a => isEffectivelyFinished(a));
 
   function getAlertCardClass(level: string | undefined, isLive: boolean): string {
     if (!isLive) return 'border border-white/5';
@@ -225,7 +227,7 @@ export default function LiveAnalysisScreen() {
 
         {/* Teams & Score */}
         <div className="mt-2 mb-2">
-          <h4 className="text-base sm:text-lg font-bold text-white pr-16">
+          <h4 className="text-sm sm:text-lg font-bold text-white pr-16 leading-snug">
             {alert.homeTeam} - {alert.awayTeam}
           </h4>
           <div className="flex items-center gap-3 mt-1">
@@ -330,12 +332,12 @@ export default function LiveAnalysisScreen() {
 
         <section className="p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8">
           {/* Page Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-western text-white mb-2 tracking-wide uppercase">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-3xl lg:text-4xl font-western text-white mb-1 sm:mb-2 tracking-wide uppercase">
                 Canli Av Sahasi
               </h2>
-              <p className="text-slate-400 text-sm sm:text-base">
+              <p className="text-slate-400 text-xs sm:text-base">
                 Tahminlerimize yakin canli maclar — otomatik alarm sistemi aktif
               </p>
             </div>
@@ -356,7 +358,7 @@ export default function LiveAnalysisScreen() {
 
           {/* Stats Bar */}
           {!loading && stats.total > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
               {stats.hot > 0 && (
                 <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-primary">{stats.hot}</p>

@@ -434,12 +434,12 @@ export default function DashboardScreen() {
 
         <section className="p-4 sm:p-6 lg:p-8 pb-32 lg:pb-8">
           {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
-            <div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-western text-white mb-1 sm:mb-2 tracking-wide">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6 sm:mb-8">
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-3xl lg:text-4xl font-western text-white mb-1 sm:mb-2 tracking-wide">
                 Haftalik Fikstur Havuzu
               </h2>
-              <p className="text-slate-400 text-sm sm:text-base">
+              <p className="text-slate-400 text-xs sm:text-base">
                 Yapay zeka seriflerimiz tarafindan taranan yuksek olasilikli duellolar.
               </p>
             </div>
@@ -622,13 +622,13 @@ export default function DashboardScreen() {
                     {/* Sheriff Badge (top right) */}
                     {badge && (
                       <div className={`absolute top-3 right-3 flex flex-col items-center ${badge.color}`}>
-                        <span className="material-icons-round text-3xl sm:text-4xl drop-shadow-lg">{badge.icon}</span>
-                        <span className="text-[8px] font-bold tracking-wider mt-0.5 opacity-80">{badge.label}</span>
+                        <span className="material-icons-round text-2xl sm:text-4xl drop-shadow-lg">{badge.icon}</span>
+                        <span className="text-[7px] sm:text-[8px] font-bold tracking-wider mt-0.5 opacity-80">{badge.label}</span>
                       </div>
                     )}
 
                     {/* League & Status & Source Badges */}
-                    <div className="flex items-center gap-2 mb-3 flex-wrap pr-12">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-3 flex-wrap pr-14 sm:pr-16">
                       <span className="text-[10px] px-2 py-1 bg-white/5 text-slate-400 rounded-md font-bold uppercase tracking-wider">
                         {opp.Lig}
                       </span>
@@ -654,7 +654,7 @@ export default function DashboardScreen() {
                     </div>
 
                     {/* Match Teams */}
-                    <h4 className="text-base sm:text-lg font-bold text-white mb-1 pr-10">
+                    <h4 className="text-sm sm:text-lg font-bold text-white mb-1 pr-14 sm:pr-10 leading-snug">
                       {opp['Ev Sahibi']} - {opp.Deplasman}
                     </h4>
 

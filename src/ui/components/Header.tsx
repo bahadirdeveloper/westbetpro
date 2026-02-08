@@ -4,10 +4,10 @@ export default function Header({ statusText, searchPlaceholder }: { statusText: 
   return (
     <header className="glass-nav border-b border-white/5 sticky top-0 z-40 px-3 sm:px-4 md:px-6 lg:px-8 py-3 flex items-center justify-between gap-2">
       {/* Status indicator */}
-      <div className="flex items-center gap-2.5 min-w-0 flex-shrink">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 border border-primary/10 rounded-full">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 border border-primary/10 rounded-full min-w-0">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0"></span>
-          <span className="text-[9px] sm:text-[10px] font-bold text-primary tracking-wider uppercase truncate">{statusText}</span>
+          <span className="text-[9px] sm:text-[10px] font-bold text-primary tracking-wider uppercase truncate max-w-[140px] sm:max-w-[200px] md:max-w-none">{statusText}</span>
         </div>
       </div>
 

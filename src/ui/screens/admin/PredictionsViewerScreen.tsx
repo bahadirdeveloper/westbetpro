@@ -17,32 +17,35 @@ interface Prediction {
   alternative_predictions: any[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-
 export default function PredictionsViewerScreen() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   const fetchPredictions = async () => {
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${API_BASE}/api/predictions?limit=100`, {
+      const response = await fetch(`/api/predictions?limit=100`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
+      if (!response.ok) {
         const data = await response.json();
-        // Sort by confidence descending
-        const sorted = (data.predictions || []).sort((a: Prediction, b: Prediction) =>
-          b.confidence - a.confidence
-        );
-        setPredictions(sorted);
+        setError(data.error || `Hata: ${response.status}`);
+        return;
       }
-    } catch (err) {
-      console.error('Failed to fetch predictions:', err);
+
+      const data = await response.json();
+      const sorted = (data.predictions || []).sort((a: Prediction, b: Prediction) =>
+        b.confidence - a.confidence
+      );
+      setPredictions(sorted);
+    } catch (err: any) {
+      setError(err.message || 'Bağlantı hatası');
     } finally {
       setLoading(false);
     }
@@ -135,7 +138,7 @@ export default function PredictionsViewerScreen() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         <div className="bg-card-dark border border-aged-gold/20 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <span className="text-slate-400 text-sm">Toplam</span>
@@ -159,6 +162,12 @@ export default function PredictionsViewerScreen() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <p className="text-red-400 font-bold text-sm">Hata: {error}</p>
+        </div>
+      )}
 
       {/* Predictions Table */}
       {loading ? (

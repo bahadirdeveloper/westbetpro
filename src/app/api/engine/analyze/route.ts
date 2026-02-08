@@ -16,7 +16,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseSelect, supabaseInsert } from '@/lib/supabase';
+import { supabaseSelect, supabaseInsert, verifyAdminAuth } from '@/lib/supabase';
 import { getTodayDate, getIstanbulTime } from '@/lib/dates';
 import { extractOddsFromApiResponse, matchGoldenRules, type MatchedRule } from '@/lib/odds-mapping';
 
@@ -261,25 +261,8 @@ async function sendTelegramSummary(results: EngineResult[], date: string) {
   }
 }
 
-function verifyAuth(request: Request): boolean {
-  const authHeader = request.headers.get('authorization') || '';
-  const token = authHeader.replace('Bearer ', '');
-  const cronSecret = process.env.CRON_SECRET || '';
-
-  // Check CRON_SECRET
-  if (cronSecret && token === cronSecret) return true;
-
-  // Check admin JWT
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role === 'admin' && payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-}
-
 export async function GET(request: Request) {
-  if (!verifyAuth(request)) {
+  if (!(await verifyAdminAuth(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
