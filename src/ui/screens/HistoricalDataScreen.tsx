@@ -308,42 +308,119 @@ export default function HistoricalDataScreen() {
               )}
 
               {!loadingStats && !allStats && (
-                <div className="text-center py-16">
-                  <span className="text-5xl mb-4 block">📊</span>
-                  <p className="text-slate-400">Henuz yeterli veri yok.</p>
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="bg-card-dark border border-aged-gold/20 rounded-2xl p-10 text-center max-w-md">
+                    <span className="material-icons-round text-5xl text-aged-gold/40 mb-4 block">analytics</span>
+                    <h3 className="font-western text-xl text-aged-gold mb-3">VERi YETERSIZ</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      Istatistikler icin yeterli sonuclanmis tahmin gerekli. Tahminler olustukca burada detayli analizler gorunecek.
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {!loadingStats && allStats && (
+              {!loadingStats && allStats && (() => {
+                // Calculate streaks from daily trend
+                const trend = allStats.daily_trend;
+                let currentStreak = 0;
+                let currentStreakType: 'win' | 'loss' | null = null;
+                let bestWinStreak = 0;
+                let bestDay = trend.length > 0 ? trend[0] : null;
+                let worstDay = trend.length > 0 ? trend[0] : null;
+
+                for (const d of trend) {
+                  if (d.rate > (bestDay?.rate ?? 0)) bestDay = d;
+                  if (d.rate < (worstDay?.rate ?? 100)) worstDay = d;
+                }
+
+                // Calculate current streak from most recent day
+                for (let i = trend.length - 1; i >= 0; i--) {
+                  const dayWin = trend[i].rate >= 50;
+                  if (i === trend.length - 1) {
+                    currentStreakType = dayWin ? 'win' : 'loss';
+                    currentStreak = 1;
+                  } else if ((dayWin && currentStreakType === 'win') || (!dayWin && currentStreakType === 'loss')) {
+                    currentStreak++;
+                  } else {
+                    break;
+                  }
+                  if (dayWin) bestWinStreak = Math.max(bestWinStreak, currentStreak);
+                }
+
+                return (
                 <div className="space-y-6">
-                  {/* Overall Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-card-dark p-4 rounded-xl border border-white/5">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">TOPLAM TAHMIN</p>
-                      <p className="text-2xl font-western text-white">{allStats.overall.total_predictions}</p>
-                      <p className="text-[10px] text-slate-600 mt-0.5">{allStats.overall.total_days} gun</p>
-                    </div>
-                    <div className="bg-green-500/5 p-4 rounded-xl border border-green-500/15">
-                      <p className="text-[10px] text-green-400 uppercase tracking-wider font-bold mb-1">TUTTU</p>
-                      <p className="text-2xl font-western text-green-400">{allStats.overall.won}</p>
-                      <p className="text-[10px] text-slate-600 mt-0.5">{allStats.overall.finished} bitten</p>
-                    </div>
-                    <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/15">
-                      <p className="text-[10px] text-red-400 uppercase tracking-wider font-bold mb-1">YATTI</p>
-                      <p className="text-2xl font-western text-red-400">{allStats.overall.lost}</p>
-                    </div>
-                    <div className={`p-4 rounded-xl border ${
-                      allStats.overall.overall_rate >= 60
-                        ? 'bg-primary/5 border-primary/15'
-                        : 'bg-card-dark border-aged-gold/10'
-                    }`}>
-                      <p className="text-[10px] text-aged-gold uppercase tracking-wider font-bold mb-1">GENEL BASARI</p>
-                      <p className={`text-2xl font-western ${
-                        allStats.overall.overall_rate >= 60 ? 'text-primary' : 'text-aged-gold'
-                      }`}>%{allStats.overall.overall_rate}</p>
-                      <div className="mt-1.5 h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="bg-green-500 rounded-full h-full" style={{ width: `${allStats.overall.overall_rate}%` }} />
+                  {/* Hero Summary Card */}
+                  <div className="bg-card-dark rounded-2xl border border-aged-gold/20 overflow-hidden">
+                    <div className="p-5 sm:p-6 bg-gradient-to-r from-aged-gold/5 to-transparent">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                        {/* Success Rate Circle */}
+                        <div className="flex items-center gap-5 sm:gap-6">
+                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-full h-full -rotate-90">
+                              <circle className="text-white/5" cx="50%" cy="50%" fill="transparent" r="45%" stroke="currentColor" strokeWidth="6" />
+                              <circle
+                                className={allStats.overall.overall_rate >= 60 ? 'text-primary' : allStats.overall.overall_rate >= 45 ? 'text-aged-gold' : 'text-red-400'}
+                                cx="50%" cy="50%" fill="transparent" r="45%" stroke="currentColor"
+                                strokeDasharray={`${2 * Math.PI * 45} ${2 * Math.PI * 45}`}
+                                strokeDashoffset={`${2 * Math.PI * 45 * (1 - allStats.overall.overall_rate / 100)}`}
+                                strokeWidth="6" strokeLinecap="round"
+                              />
+                            </svg>
+                            <div className="absolute text-center">
+                              <p className={`text-xl sm:text-2xl font-western ${allStats.overall.overall_rate >= 60 ? 'text-primary' : 'text-aged-gold'}`}>
+                                %{allStats.overall.overall_rate}
+                              </p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">GENEL BASARI</p>
+                            <p className="text-white text-sm">{allStats.overall.won} tuttu / {allStats.overall.finished} sonuclanan</p>
+                            <p className="text-slate-500 text-xs mt-1">{allStats.overall.total_days} gun, {allStats.overall.total_predictions} tahmin</p>
+                          </div>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="flex-1 grid grid-cols-3 gap-3">
+                          <div className="text-center sm:text-left">
+                            <p className="text-[10px] text-green-400 uppercase tracking-wider font-bold">TUTTU</p>
+                            <p className="text-xl sm:text-2xl font-western text-green-400">{allStats.overall.won}</p>
+                          </div>
+                          <div className="text-center sm:text-left">
+                            <p className="text-[10px] text-red-400 uppercase tracking-wider font-bold">YATTI</p>
+                            <p className="text-xl sm:text-2xl font-western text-red-400">{allStats.overall.lost}</p>
+                          </div>
+                          <div className="text-center sm:text-left">
+                            <p className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">BEKLEYEN</p>
+                            <p className="text-xl sm:text-2xl font-western text-blue-400">{allStats.overall.pending}</p>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Streak & Highlights Bar */}
+                    <div className="border-t border-white/5 px-5 sm:px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                      {currentStreak > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`material-icons-round text-sm ${currentStreakType === 'win' ? 'text-green-400' : 'text-red-400'}`}>
+                            {currentStreakType === 'win' ? 'trending_up' : 'trending_down'}
+                          </span>
+                          <span className="text-slate-400">
+                            {currentStreak} gun {currentStreakType === 'win' ? 'basarili' : 'basarisiz'} seri
+                          </span>
+                        </div>
+                      )}
+                      {bestDay && bestDay.total >= 2 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-icons-round text-sm text-aged-gold">star</span>
+                          <span className="text-slate-400">En iyi gun: {bestDay.date_formatted} (%{bestDay.rate})</span>
+                        </div>
+                      )}
+                      {bestWinStreak > 1 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-icons-round text-sm text-primary">bolt</span>
+                          <span className="text-slate-400">En uzun seri: {bestWinStreak} gun</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -506,7 +583,8 @@ export default function HistoricalDataScreen() {
                     )}
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
@@ -573,6 +651,17 @@ export default function HistoricalDataScreen() {
                               }`}>%{d.success_rate}</span>
                             )}
                           </div>
+                          {/* Mini win/loss dots */}
+                          {d.finished > 0 && (
+                            <div className="flex items-center gap-0.5 mt-1 justify-center">
+                              {Array.from({ length: Math.min(d.won, 5) }).map((_, i) => (
+                                <span key={`w${i}`} className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                              ))}
+                              {Array.from({ length: Math.min(d.lost, 5) }).map((_, i) => (
+                                <span key={`l${i}`} className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                              ))}
+                            </div>
+                          )}
                         </button>
                       );
                     })}
