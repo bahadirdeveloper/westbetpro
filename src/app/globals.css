@@ -211,15 +211,13 @@
 
   /* === Page Transitions === */
   .page-transition {
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.3s ease;
   }
   .page-enter {
     opacity: 0;
-    transform: translateY(6px);
   }
   .page-active {
     opacity: 1;
-    transform: translateY(0);
   }
 
   @keyframes westernLoad {
